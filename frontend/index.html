@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tower Defense - Plantas vs Zombies</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="hud">
+    <div class="hud-item">💰 Dinero: <span id="dinero">800</span></div>
+    <div class="hud-item">❤️ Vidas: <span id="vidas">3</span></div>
+    <div class="hud-item">🌊 Oleada: <span id="oleada">1</span>/8</div>
+  </header>
+
+  <main id="tablero" class="tablero">
+    <!-- El mapa 7x7 se renderiza aquí dinámicamente desde js/main.js -->
+  </main>
+
+  <aside class="panel-defensas">
+    <h2>Defensas</h2>
+    <div class="carta-defensa" data-tipo="muro">
+      <img src="assets/images/characters/plants/muro.png" alt="Muro" onerror="this.style.display='none'">
+      <p>Muro<br>150</p>
+    </div>
+    <div class="carta-defensa" data-tipo="tirador">
+      <img src="assets/images/characters/plants/tirador.png" alt="Tirador" onerror="this.style.display='none'">
+      <p>Tirador<br>200</p>
+    </div>
+    <div class="carta-defensa" data-tipo="mina">
+      <img src="assets/images/characters/plants/mina.png" alt="Mina" onerror="this.style.display='none'">
+      <p>Mina<br>250</p>
+    </div>
+  </aside>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

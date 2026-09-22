@@ -1,0 +1,81 @@
+/* Tower Defense - Plantas vs Zombies - Fase 2 (Interfaz) */
+
+:root {
+  --color-fondo: #1b2a1e;
+  --color-panel: #274d2b;
+  --color-acento: #7fd858;
+  --color-texto: #f2f2f2;
+  --tam-celda: 64px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+}
+
+.hud {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  padding: 0.75rem;
+  background: var(--color-panel);
+  font-weight: bold;
+  border-bottom: 3px solid var(--color-acento);
+}
+
+.tablero {
+  display: grid;
+  grid-template-columns: repeat(7, var(--tam-celda));
+  grid-template-rows: repeat(7, var(--tam-celda));
+  gap: 2px;
+  justify-content: center;
+  margin: 1.5rem auto;
+  background: #0e150f;
+  padding: 8px;
+  width: fit-content;
+}
+
+.celda {
+  width: var(--tam-celda);
+  height: var(--tam-celda);
+  background: #3a5e3d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.celda.camino {
+  background: #8a6d3b;
+}
+
+.panel-defensas {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.carta-defensa {
+  background: var(--color-panel);
+  border: 2px solid var(--color-acento);
+  border-radius: 8px;
+  padding: 0.5rem;
+  text-align: center;
+  cursor: pointer;
+  width: 90px;
+}
+
+.carta-defensa img {
+  width: 48px;
+  height: 48px;
+}
+
+.carta-defensa:hover {
+  background: #35663a;
+}
