@@ -82,6 +82,36 @@ se generen:
 - Imágenes de personajes (plantas y zombies) y escenarios.
 - Efectos de sonido y música.
 
+### Catálogo de sonidos (`frontend/assets/sounds/`)
+
+Efectos ya incluidos (pack original de Plants vs Zombies, renombrados según
+el evento del juego que representan):
+
+| Archivo (`effects/`) | Evento en `Juego.java` |
+|---|---|
+| `colocar_defensa.ogg` | Se coloca una planta |
+| `error.ogg` | Dinero insuficiente / acción inválida |
+| `retirar_defensa.ogg` | Se retira la última defensa colocada |
+| `disparo.ogg` | El Tirador ataca |
+| `explosion_mina.ogg` | La Mina explota |
+| `zombie_hit.ogg` | Un zombie recibe daño |
+| `zombie_ataque.ogg` | Un zombie ataca una planta |
+| `planta_destruida.ogg` | Una planta llega a 0 HP |
+| `zombie_muerte.ogg` | Un zombie es derrotado |
+| `perder_vida.ogg` | Un zombie llega a la meta (pierdes 1 vida) |
+| `nueva_oleada.ogg` | Comienza una nueva oleada |
+| `oleada_final.ogg` | Comienza la última oleada |
+| `click_menu.ogg` | Click en botón / navegación de menú |
+| `victoria.ogg` | Fin de partida ganada |
+| `game_over.ogg` | Fin de partida perdida |
+
+| Archivo (`music/`) | Uso |
+|---|---|
+| `musica_victoria.ogg` | Música de fondo de la pantalla de victoria |
+
+**Pendiente:** música de fondo del menú principal y de la partida (loop) —
+el pack usado solo trae efectos sueltos, no pistas musicales largas.
+
 ## Estructuras de datos utilizadas
 
 - **Lista Enlazada Simple:** representa el mapa (matriz 7x7, camino serpentino).
