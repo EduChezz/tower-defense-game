@@ -15,7 +15,7 @@ Qué hace:
     - muertes / explosiones: recorta al tramo útil, acelera y termina en cuadro vacío;
       se reproducen UNA sola vez
     - imágenes estáticas guardadas como GIF -> PNG
-  Videos: se les quita el audio y se comprimen
+  Videos: se les quita el audio y se comprimen; el logo (fondo negro) se convierte a WebM con transparencia
   Fondos: se reducen a Full HD comprimido
   Música: se normaliza el volumen, se arma un loop sin salto y se guarda como .mp3
            (los .ogg/.wav se descargaban con ~3 s de retraso en Chrome/Windows; el .mp3 no)
@@ -25,7 +25,7 @@ Requisitos:  pip install Pillow imageio-ffmpeg
 
 Uso:
     python tools/procesar_assets.py --src "C:/ruta/carpeta_cruda" --dest frontend/assets
-    python tools/procesar_assets.py --src ... --dest ... --solo gifs      (gifs|videos|fondos|musica)
+    python tools/procesar_assets.py --src ... --dest ... --solo gifs      (gifs|videos|logo|fondos|musica)
 
 Si reemplazas un GIF (por ejemplo la Mina) en la carpeta cruda con el MISMO nombre,
 basta con volver a ejecutar este script.
@@ -124,7 +124,12 @@ ESTATICOS = [
 
 VIDEOS = [
     ("fondo_menu.mp4", "videos/fondo_menu.mp4"),
-    ("logo_juego.mp4", "videos/logo_juego.mp4"),
+]
+# Video con fondo NEGRO PURO -> WebM VP9 con transparencia (un MP4 no admite alfa).
+# (origen, destino, similitud, mezcla, recorte vertical "alto:y" del cuadro de 1920x1080)
+# similitud baja (0.04): quita el negro del fondo pero conserva los contornos oscuros del dibujo.
+LOGOS_ALFA = [
+    ("logo_juego_negro.mp4", "videos/logo_juego.webm", 0.04, 0.03, "920:80"),
 ]
 FONDOS = [
     ("fondo_victoria.jpg", f"{ESCENARIOS}/fondo_victoria.jpg"),
@@ -576,6 +581,24 @@ def procesar_videos(src, dest):
         print(f"  {nombre} -> {rel} (sin audio)  {os.path.getsize(origen) // 1024} KB -> {os.path.getsize(out) // 1024} KB")
 
 
+def procesar_logos(src, dest):
+    ff = ffmpeg_exe()
+    for nombre, rel, sim, mezcla, recorte in LOGOS_ALFA:
+        origen = os.path.join(src, nombre)
+        if not os.path.isfile(origen):
+            print(f"  ! falta {nombre}: se omite")
+            continue
+        alto, y = recorte.split(":")
+        out = os.path.join(dest, rel)
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        filtro = (f"crop=1920:{alto}:0:{y},colorkey=0x000000:{sim}:{mezcla},"
+                  f"scale=1024:-2,format=yuva420p")
+        correr([ff, "-y", "-hide_banner", "-loglevel", "error", "-i", origen, "-an", "-vf", filtro,
+                "-c:v", "libvpx-vp9", "-crf", "37", "-b:v", "0", "-pix_fmt", "yuva420p",
+                "-auto-alt-ref", "0", "-row-mt", "1", out])
+        print(f"  {nombre} -> {rel} (transparente, sin audio)  {os.path.getsize(origen) // 1024} KB -> {os.path.getsize(out) // 1024} KB")
+
+
 def procesar_fondos(src, dest):
     for nombre, rel in FONDOS:
         origen = os.path.join(src, nombre)
@@ -629,7 +652,7 @@ def main():
     ap = argparse.ArgumentParser(description="Procesa los assets crudos y los deja listos para el juego.")
     ap.add_argument("--src", required=True, help="Carpeta con los archivos crudos (gif, mp4, jpg, mp3)")
     ap.add_argument("--dest", required=True, help="Carpeta de salida (frontend/assets)")
-    ap.add_argument("--solo", choices=["gifs", "videos", "fondos", "musica"], help="Procesar solo una parte")
+    ap.add_argument("--solo", choices=["gifs", "videos", "logo", "fondos", "musica"], help="Procesar solo una parte")
     args = ap.parse_args()
 
     src, dest = args.src, args.dest
@@ -652,9 +675,11 @@ def main():
         with open(manifest_path, "w", encoding="utf-8") as fh:
             json.dump(dict(sorted(manifest.items())), fh, indent=2, ensure_ascii=False)
         print(f"\nmanifest: {manifest_path} ({len(manifest)} animaciones)")
-    if args.solo in (None, "videos"):
+    if args.solo in (None, "videos", "logo"):
         print("\n=== Videos ===")
-        procesar_videos(src, dest)
+        if args.solo != "logo":
+            procesar_videos(src, dest)
+        procesar_logos(src, dest)
     if args.solo in (None, "fondos"):
         print("\n=== Fondos ===")
         procesar_fondos(src, dest)

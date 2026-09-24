@@ -1,4 +1,4 @@
-# Tower Defense - Plantas vs Zombies
+# Plant Defense
 
 Proyecto de la asignatura **Estructura de Datos** (Universidad Técnica de Ambato).
 Integrantes: Eduardo Sánchez, Xander Real, Elvis Zambrano.
@@ -189,7 +189,7 @@ estático por personaje para las cartas y el Libro: `plants/muro.png`,
 | `images/scenarios/tile_inicio.gif`, `tile_meta.gif` | Celdas de inicio y meta (loop) |
 | `images/scenarios/fondo_victoria.jpg`, `fondo_game_over.jpg` | Fondos de fin de partida (provisionales) |
 | `videos/fondo_menu.mp4` | Fondo animado del menú (sin audio, en loop) |
-| `videos/logo_juego.mp4` | Logo animado (sin audio; provisional, trae fondo sólido) |
+| `videos/logo_juego.webm` | Logo animado con **transparencia** (WebM VP9 con alfa, sin audio); se genera desde un MP4 de fondo negro con `procesar_assets.py --solo logo` |
 
 ### Sonidos (`sounds/`)
 
@@ -243,7 +243,6 @@ el mismo nombre (`mina_normal.gif`, `mina_explota.gif`) y volver a ejecutarlo.
 
 - Reemplazar la Mina por la versión mejorada (el diseño de `mina_explota` no coincide
   con el de `mina_normal`).
-- Logo definitivo (el actual dice "PLANT DEFENSE" y trae otras plantas).
 - Fondos de victoria/game over animados (los actuales son imágenes).
 
 ## Estructuras de datos utilizadas

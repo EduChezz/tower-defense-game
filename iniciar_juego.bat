@@ -2,7 +2,7 @@
 rem Compila el backend (Java) y arranca el servidor del juego. Abre el navegador automaticamente.
 rem Uso: doble clic, o  iniciar_juego.bat --sin-navegador
 setlocal
-title Tower Defense - Servidor del juego
+title Plant Defense - Servidor del juego
 cd /d "%~dp0backend"
 
 echo Compilando el backend...

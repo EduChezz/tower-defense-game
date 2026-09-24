@@ -45,7 +45,7 @@ public class ServidorApi {
         servidor.start();
 
         System.out.println("=====================================================");
-        System.out.println("  TOWER DEFENSE - Plantas vs Zombies");
+        System.out.println("  PLANT DEFENSE");
         System.out.println("  Juego:      http://127.0.0.1:" + puerto + "/");
         System.out.println("  Frontend:   " + raizWeb.toAbsolutePath().normalize());
         System.out.println("  (Ctrl+C para detener el servidor)");
