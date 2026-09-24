@@ -17,7 +17,8 @@ Qué hace:
     - imágenes estáticas guardadas como GIF -> PNG
   Videos: se les quita el audio y se comprimen
   Fondos: se reducen a Full HD comprimido
-  Música: se normaliza el volumen, se arma un loop sin salto y se pasa a .ogg
+  Música: se normaliza el volumen, se arma un loop sin salto y se guarda como .mp3
+           (los .ogg/.wav se descargaban con ~3 s de retraso en Chrome/Windows; el .mp3 no)
   Además escribe frontend/assets/manifest.json con tamaño, cuadros y duración de cada animación.
 
 Requisitos:  pip install Pillow imageio-ffmpeg
@@ -65,6 +66,9 @@ ESCENARIOS = "images/scenarios"
 #         loop_todo   -> deja todos los cuadros y en loop
 #         unavez      -> deja todos los cuadros, se reproduce una vez y termina vacío
 #         unavez_auto -> detecta el tramo útil (por cobertura), acelera y termina vacío
+#         unavez_rango-> toma el tramo rango=(a,b) en `objetivo` cuadros de `dur` ms; sin cuadro vacío
+#                        (el juego vuelve a la animación de reposo). `hito` = cuadro original donde
+#                        ocurre el momento clave (ej. sale la semilla) -> se guarda como hito_ms
 # alinear: None = mismo encuadre que el primer item del grupo; "w"/"h" = iguala ancho/alto
 #          del primer cuadro con el del primer item (para clips con otra escala)
 GRUPOS = [
@@ -74,7 +78,8 @@ GRUPOS = [
     ]),
     dict(nombre="tirador", carpeta=PLANTAS, escala=0.8, items=[
         dict(src="tirador_natural.gif", out="tirador_reposo", modo="loop", lmin=24, lmax=60, sombra=True, icono="tirador"),
-        dict(src="tirador_disparo.gif", out="tirador_disparo", modo="loop", lmin=20, lmax=60, sombra=True, marca=MARCA_ESTRELLA),
+        dict(src="tirador_disparo.gif", out="tirador_disparo", modo="unavez_rango", rango=(38, 68), objetivo=11, dur=90,
+             hito=58, sin_vacio=True, sombra=True, marca=MARCA_ESTRELLA),
         dict(src="tirador_destruido.gif", out="tirador_destruido", modo="unavez", alinear="h"),
     ]),
     dict(nombre="mina", carpeta=PLANTAS, escala=0.8, items=[
@@ -126,8 +131,8 @@ FONDOS = [
     ("fondo_game_over.jpg", f"{ESCENARIOS}/fondo_game_over.jpg"),
 ]
 MUSICA = [
-    ("musica_menu.mp3", "sounds/music/musica_menu.ogg"),
-    ("musica_partida.mp3", "sounds/music/musica_partida.ogg"),
+    ("musica_menu.mp3", "sounds/music/musica_menu.mp3"),
+    ("musica_partida.mp3", "sounds/music/musica_partida.mp3"),
 ]
 
 
@@ -326,6 +331,15 @@ def seleccionar(frames, durs, item):
         return sel, durs[i:j], True, f"loop cuadros {i}-{j - 1} ({len(sel)}), salto {seam:.1f} vs normal {vec:.1f}"
     if modo == "loop_todo":
         return frames, durs, True, f"loop {len(frames)} cuadros"
+    if modo == "unavez_rango":
+        a, b = item["rango"]
+        n = item.get("objetivo", 12)
+        dur = item.get("dur", 90)
+        idx = [round(a + k * (b - a) / (n - 1)) for k in range(n)]
+        if "hito" in item:
+            k_hito = min(range(n), key=lambda k: abs(idx[k] - item["hito"]))
+            item["_hito_ms"] = k_hito * dur
+        return [frames[k] for k in idx], [dur] * n, False, f"una vez: rango {a}-{b} -> {n} cuadros de {dur} ms"
     if modo == "unavez_auto":
         idx, (s, e) = tramo_util(frames, item.get("lead", 3), item.get("objetivo", 16), item.get("desde"))
         return [frames[k] for k in idx], [100] * len(idx), False, f"una vez: tramo {s}-{e} -> {len(idx)} cuadros"
@@ -385,12 +399,17 @@ def guardar_gif(frames, durs, ruta, loop):
     pals[0].save(ruta, **kw)
 
 
-def registrar(manifest, dest, ruta, frames, durs, loop, anchor="bottom-center"):
+def registrar(manifest, dest, ruta, frames, durs, loop, ancla, ref, extra=None):
+    """ancla = [x, y] en pixeles del lienzo donde "pisa" el personaje (centro de los pies);
+    ref = [ancho, alto] del personaje en reposo, para dimensionarlo en el tablero."""
     rel = os.path.relpath(ruta, dest).replace("\\", "/")
     manifest[rel] = dict(
         ancho=frames[0].size[0], alto=frames[0].size[1], cuadros=len(frames),
-        duracion_ms=int(sum(durs)), en_loop=bool(loop), ancla=anchor,
+        duracion_ms=int(sum(durs)), en_loop=bool(loop),
+        ancla=[round(ancla[0]), round(ancla[1])], ref=[round(ref[0]), round(ref[1])],
     )
+    if extra:
+        manifest[rel].update(extra)
 
 
 # --------------------------------------------------------------------------
@@ -458,12 +477,14 @@ def procesar_grupo(g, src, dest, manifest):
             lienzo.paste(ff, (round((d["off"][0] - minx) * esc), round((d["off"][1] - miny) * esc)))
             salida.append(lienzo)
         durs = list(d["durs"])
-        if not d["loop"]:  # termina en cuadro vacío para que el elemento "desaparezca"
+        if not d["loop"] and not it.get("sin_vacio"):  # termina en cuadro vacío para que el elemento "desaparezca"
             salida.append(cuadro_vacio((W, H)))
             durs.append(100)
         ruta = os.path.join(dest, g["carpeta"], it["out"] + ".gif")
         guardar_gif(salida, durs, ruta, d["loop"])
-        registrar(manifest, dest, ruta, salida, durs, d["loop"])
+        extra = {"hito_ms": it["_hito_ms"]} if "_hito_ms" in it else None
+        registrar(manifest, dest, ruta, salida, durs, d["loop"],
+                  ancla=((bcx - minx) * esc, (bby - miny) * esc), ref=(bw * esc, bh * esc), extra=extra)
         print(f"    -> {os.path.relpath(ruta, dest)}  {W}x{H}  {os.path.getsize(ruta) // 1024} KB")
 
         # icono PNG estático (para las cartas del menú)
@@ -504,7 +525,7 @@ def procesar_ajustar(a, src, dest, manifest):
         salida.append(lienzo)
     out = os.path.join(dest, a["carpeta"], a["out"] + ".gif")
     guardar_gif(salida, sdurs, out, es_loop)
-    registrar(manifest, dest, out, salida, sdurs, es_loop, anchor="center")
+    registrar(manifest, dest, out, salida, sdurs, es_loop, ancla=(lado / 2, lado / 2), ref=(w * k, h * k))
     print(f"  {a['out']}: {info}\n    -> {os.path.relpath(out, dest)}  {lado}x{lado}  {os.path.getsize(out) // 1024} KB")
 
 
@@ -598,7 +619,7 @@ def procesar_musica(src, dest, cruce=4.0):
         out = os.path.join(dest, rel)
         os.makedirs(os.path.dirname(out), exist_ok=True)
         correr([ff, "-y", "-hide_banner", "-loglevel", "error", "-i", origen, "-filter_complex", fc,
-                "-map", "[out]", "-c:a", "libvorbis", "-q:a", "4", out])
+                "-map", "[out]", "-c:a", "libmp3lame", "-q:a", "3", out])
         print(f"  {nombre} -> {rel}  {D:.0f}s -> {duracion(ff, out):.0f}s (loop sin salto, -20 LUFS)  "
               f"{os.path.getsize(origen) // 1024} KB -> {os.path.getsize(out) // 1024} KB")
 
