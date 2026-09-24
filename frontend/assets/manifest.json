@@ -1,0 +1,178 @@
+{
+  "images/characters/plants/mina_explosion.gif": {
+    "ancho": 359,
+    "alto": 206,
+    "cuadros": 19,
+    "duracion_ms": 1900,
+    "en_loop": false,
+    "ancla": "bottom-center"
+  },
+  "images/characters/plants/mina_reposo.gif": {
+    "ancho": 359,
+    "alto": 206,
+    "cuadros": 33,
+    "duracion_ms": 3300,
+    "en_loop": true,
+    "ancla": "bottom-center"
+  },
+  "images/characters/plants/muro_destruido.gif": {
+    "ancho": 195,
+    "alto": 167,
+    "cuadros": 8,
+    "duracion_ms": 1150,
+    "en_loop": false,
+    "ancla": "bottom-center"
+  },
+  "images/characters/plants/muro_reposo.gif": {
+    "ancho": 195,
+    "alto": 167,
+    "cuadros": 32,
+    "duracion_ms": 3200,
+    "en_loop": true,
+    "ancla": "bottom-center"
+  },
+  "images/characters/plants/tirador_destruido.gif": {
+    "ancho": 285,
+    "alto": 186,
+    "cuadros": 9,
+    "duracion_ms": 1300,
+    "en_loop": false,
+    "ancla": "bottom-center"
+  },
+  "images/characters/plants/tirador_disparo.gif": {
+    "ancho": 285,
+    "alto": 186,
+    "cuadros": 59,
+    "duracion_ms": 5900,
+    "en_loop": true,
+    "ancla": "bottom-center"
+  },
+  "images/characters/plants/tirador_reposo.gif": {
+    "ancho": 285,
+    "alto": 186,
+    "cuadros": 31,
+    "duracion_ms": 3100,
+    "en_loop": true,
+    "ancla": "bottom-center"
+  },
+  "images/characters/zombies/basico_caminando.gif": {
+    "ancho": 241,
+    "alto": 184,
+    "cuadros": 11,
+    "duracion_ms": 1100,
+    "en_loop": true,
+    "ancla": "bottom-center"
+  },
+  "images/characters/zombies/basico_comiendo.gif": {
+    "ancho": 241,
+    "alto": 184,
+    "cuadros": 62,
+    "duracion_ms": 6200,
+    "en_loop": true,
+    "ancla": "bottom-center"
+  },
+  "images/characters/zombies/basico_muerte.gif": {
+    "ancho": 241,
+    "alto": 184,
+    "cuadros": 21,
+    "duracion_ms": 2100,
+    "en_loop": false,
+    "ancla": "bottom-center"
+  },
+  "images/characters/zombies/rapido_comiendo.gif": {
+    "ancho": 273,
+    "alto": 196,
+    "cuadros": 70,
+    "duracion_ms": 7000,
+    "en_loop": true,
+    "ancla": "bottom-center"
+  },
+  "images/characters/zombies/rapido_corriendo.gif": {
+    "ancho": 273,
+    "alto": 196,
+    "cuadros": 20,
+    "duracion_ms": 2000,
+    "en_loop": true,
+    "ancla": "bottom-center"
+  },
+  "images/characters/zombies/rapido_muerte.gif": {
+    "ancho": 273,
+    "alto": 196,
+    "cuadros": 19,
+    "duracion_ms": 1900,
+    "en_loop": false,
+    "ancla": "bottom-center"
+  },
+  "images/characters/zombies/tanque_caminando.gif": {
+    "ancho": 275,
+    "alto": 199,
+    "cuadros": 19,
+    "duracion_ms": 1900,
+    "en_loop": true,
+    "ancla": "bottom-center"
+  },
+  "images/characters/zombies/tanque_comiendo.gif": {
+    "ancho": 275,
+    "alto": 199,
+    "cuadros": 70,
+    "duracion_ms": 7000,
+    "en_loop": true,
+    "ancla": "bottom-center"
+  },
+  "images/characters/zombies/tanque_muerte.gif": {
+    "ancho": 275,
+    "alto": 199,
+    "cuadros": 23,
+    "duracion_ms": 2300,
+    "en_loop": false,
+    "ancla": "bottom-center"
+  },
+  "images/effects/proyectil_impacto.gif": {
+    "ancho": 202,
+    "alto": 135,
+    "cuadros": 9,
+    "duracion_ms": 900,
+    "en_loop": false,
+    "ancla": "bottom-center"
+  },
+  "images/effects/proyectil_tirador.gif": {
+    "ancho": 202,
+    "alto": 135,
+    "cuadros": 8,
+    "duracion_ms": 800,
+    "en_loop": true,
+    "ancla": "bottom-center"
+  },
+  "images/scenarios/tile_inicio.gif": {
+    "ancho": 192,
+    "alto": 192,
+    "cuadros": 31,
+    "duracion_ms": 3100,
+    "en_loop": true,
+    "ancla": "center"
+  },
+  "images/scenarios/tile_meta.gif": {
+    "ancho": 192,
+    "alto": 192,
+    "cuadros": 20,
+    "duracion_ms": 2000,
+    "en_loop": true,
+    "ancla": "center"
+  },
+  "images/ui/icono_dinero.gif": {
+    "ancho": 128,
+    "alto": 128,
+    "cuadros": 48,
+    "duracion_ms": 4800,
+    "en_loop": true,
+    "ancla": "center"
+  },
+  "images/ui/icono_vida.gif": {
+    "ancho": 128,
+    "alto": 128,
+    "cuadros": 51,
+    "duracion_ms": 5100,
+    "en_loop": true,
+    "ancla": "center"
+  }
+}
