@@ -67,6 +67,17 @@ public class Cola {
         return this.tamanio == 0;
     }
 
+    // Copia del contenido de frente a final (no modifica la cola)
+    public java.util.List<Zombie> comoLista() {
+        java.util.List<Zombie> lista = new java.util.ArrayList<>();
+        NodoCola actual = this.frente;
+        while (actual != null) {
+            lista.add(actual.zombie);
+            actual = actual.siguiente;
+        }
+        return lista;
+    }
+
     public void imprimirCola(String titulo) {
         if (this.estaVacia()) {
             System.out.println(titulo + ": [Vacía]");

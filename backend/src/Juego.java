@@ -6,7 +6,16 @@
  * - Cola de activos: zombies en el mapa; el orden FIFO equivale al orden de avance
  * - Lista enlazada: el mapa; cada nodo guarda su planta y su zombie
  * - Pila: defensas en orden de colocación (permite retirar la última)
+ *
+ * Dos modos de uso:
+ *  - Consola: new Juego(demo, scanner) + ejecutar()   (Menu.java)
+ *  - API web: Juego.paraApi(demo) y luego avanzarTick() / colocarDefensaApi() / retirarUltimaApi();
+ *    en este modo no se escribe en consola y cada suceso queda registrado como EventoJuego.
  */
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Scanner;
 
@@ -26,6 +35,10 @@ public class Juego {
     private boolean victoria;
     private Random random;
     private Scanner scanner;
+
+    // Modo API: sin consola, con registro de eventos
+    private boolean silencioso;
+    private final List<EventoJuego> eventos = new ArrayList<>();
 
     // Modo demo automático
     private boolean automatico;
@@ -60,12 +73,43 @@ public class Juego {
         this.scanner = scanner;
     }
 
+    // Partida para la API web: sin Scanner ni consola, con la primera oleada ya generada
+    public static Juego paraApi(boolean isDemo) {
+        Juego juego = new Juego(isDemo, null);
+        juego.silencioso = true;
+        juego.generarOleada(0);
+        return juego;
+    }
+
     public void setPausaMs(int pausaMs) {
         this.pausaMs = pausaMs;
     }
 
     public boolean gano() {
         return this.victoria;
+    }
+
+    // ========== SALIDA: CONSOLA Y EVENTOS ==========
+    private void log(String mensaje) {
+        if (!this.silencioso) {
+            System.out.println(mensaje);
+        }
+    }
+
+    // Crea un evento; solo se guarda en modo API
+    private EventoJuego evento(String tipo) {
+        EventoJuego e = new EventoJuego(tipo);
+        if (this.silencioso) {
+            this.eventos.add(e);
+        }
+        return e;
+    }
+
+    // Devuelve los eventos acumulados desde la última llamada y limpia la lista
+    public List<EventoJuego> tomarEventos() {
+        List<EventoJuego> copia = new ArrayList<>(this.eventos);
+        this.eventos.clear();
+        return copia;
     }
 
     // ========== FASE 1: ATAQUE DE PLANTAS ==========
@@ -87,9 +131,16 @@ public class Juego {
                     if (nodoObjetivo != null) {
                         int danioAplicado = actual.planta.danoBase;
                         nodoObjetivo.zombie.recibirDano(danioAplicado);
-                        System.out.println("  [EVENTO] Tirador en Nodo " + actual.idPosicion +
-                                         " inflige " + danioAplicado + " daño a " + nodoObjetivo.zombie.nombre +
-                                         " en Nodo " + nodoObjetivo.idPosicion);
+                        log("  [EVENTO] Tirador en Nodo " + actual.idPosicion +
+                            " inflige " + danioAplicado + " daño a " + nodoObjetivo.zombie.nombre +
+                            " en Nodo " + nodoObjetivo.idPosicion);
+                        evento("disparo")
+                            .con("planta", actual.planta.id)
+                            .con("desde", actual.idPosicion)
+                            .con("hacia", nodoObjetivo.idPosicion)
+                            .con("zombie", nodoObjetivo.zombie.id)
+                            .con("dano", danioAplicado)
+                            .con("hp", nodoObjetivo.zombie.hp);
                     }
                 } else if (actual.planta.tipo == Planta.TipoPlanta.MINA) {
                     // Si hay zombie en el mismo nodo, explota
@@ -97,8 +148,13 @@ public class Juego {
                         int danioAplicado = actual.planta.danoBase;
                         actual.zombie.recibirDano(danioAplicado);
                         actual.planta.recibirDano(999);
-                        System.out.println("  [EVENTO] Mina en Nodo " + actual.idPosicion +
-                                         " explota e inflige " + danioAplicado + " daño a " + actual.zombie.nombre);
+                        log("  [EVENTO] Mina en Nodo " + actual.idPosicion +
+                            " explota e inflige " + danioAplicado + " daño a " + actual.zombie.nombre);
+                        evento("mina_explota")
+                            .con("planta", actual.planta.id)
+                            .con("nodo", actual.idPosicion)
+                            .con("zombie", actual.zombie.id)
+                            .con("dano", danioAplicado);
                     }
                 }
             }
@@ -117,8 +173,13 @@ public class Juego {
 
             if (!zombie.estaVivo()) {
                 this.dinero += zombie.recompensa;
-                System.out.println("  [EVENTO] " + zombie.nombre + " ha sido derrotado. Ganas " +
-                                 zombie.recompensa + " monedas.");
+                log("  [EVENTO] " + zombie.nombre + " ha sido derrotado. Ganas " +
+                    zombie.recompensa + " monedas.");
+                evento("zombie_muere")
+                    .con("zombie", zombie.id)
+                    .con("zombieTipo", zombie.tipo.name())
+                    .con("nodo", nodo.idPosicion)
+                    .con("recompensa", zombie.recompensa);
                 nodo.zombie = null;
                 continue;
             }
@@ -131,19 +192,36 @@ public class Juego {
                         && siguiente.planta.estaVivo()) {
                     // La planta bloquea el paso: el zombie la ataca
                     siguiente.planta.recibirDano(zombie.danoBase);
-                    System.out.println("  [EVENTO] " + zombie.nombre + " en Nodo " + nodo.idPosicion +
-                                     " ataca a " + siguiente.planta.nombre + " (-" + zombie.danoBase + " HP)");
+                    log("  [EVENTO] " + zombie.nombre + " en Nodo " + nodo.idPosicion +
+                        " ataca a " + siguiente.planta.nombre + " (-" + zombie.danoBase + " HP)");
+                    evento("zombie_ataca")
+                        .con("zombie", zombie.id)
+                        .con("zombieTipo", zombie.tipo.name())
+                        .con("nodo", nodo.idPosicion)
+                        .con("planta", siguiente.planta.id)
+                        .con("objetivo", siguiente.idPosicion)
+                        .con("dano", zombie.danoBase)
+                        .con("hpPlanta", siguiente.planta.hp);
                 } else if (siguiente.siguiente == null) {
                     // Llegó a la meta: sale del mapa y quita una vida
                     nodo.zombie = null;
                     this.vidas--;
-                    System.out.println("  [EVENTO] " + zombie.nombre + " ha alcanzado la META. Pierdes 1 vida.");
+                    log("  [EVENTO] " + zombie.nombre + " ha alcanzado la META. Pierdes 1 vida.");
+                    evento("zombie_meta")
+                        .con("zombie", zombie.id)
+                        .con("zombieTipo", zombie.tipo.name())
+                        .con("nodo", nodo.idPosicion)
+                        .con("vidas", this.vidas);
                     continue;
                 } else if (siguiente.zombie == null) {
                     nodo.zombie = null;
                     siguiente.zombie = zombie;
                     zombie.nodoActual = siguiente;
                     zombie.resetearTick();
+                    evento("zombie_mueve")
+                        .con("zombie", zombie.id)
+                        .con("desde", nodo.idPosicion)
+                        .con("hasta", siguiente.idPosicion);
                 }
             }
 
@@ -162,7 +240,11 @@ public class Juego {
             entrante.nodoActual = inicio;
             inicio.zombie = entrante;
             this.colaActivos.encolar(entrante);
-            System.out.println("  [EVENTO] " + entrante.nombre + " entra al mapa.");
+            log("  [EVENTO] " + entrante.nombre + " entra al mapa.");
+            evento("zombie_entra")
+                .con("zombie", entrante.id)
+                .con("zombieTipo", entrante.tipo.name())
+                .con("nodo", inicio.idPosicion);
         }
     }
 
@@ -171,8 +253,12 @@ public class Juego {
         Nodo actual = this.mapa.getCabeza();
         while (actual != null) {
             if (actual.planta != null && !actual.planta.estaVivo()) {
-                System.out.println("  [LIMPIEZA] " + actual.planta.nombre + " en Nodo " +
-                                 actual.idPosicion + " ha sido destruida.");
+                log("  [LIMPIEZA] " + actual.planta.nombre + " en Nodo " +
+                    actual.idPosicion + " ha sido destruida.");
+                evento("planta_destruida")
+                    .con("planta", actual.planta.id)
+                    .con("plantaTipo", actual.planta.tipo.name())
+                    .con("nodo", actual.idPosicion);
                 actual.planta = null;
             }
             actual = actual.siguiente;
@@ -185,6 +271,48 @@ public class Juego {
 
     private boolean oleadaTerminada() {
         return this.colaZombies.estaVacia() && !hayZombiesEnMapa();
+    }
+
+    // ========== UN TICK COMPLETO (consola y API) ==========
+    // Ejecuta las 3 fases, avanza el reloj, lanza la siguiente oleada y revisa el fin de partida
+    public void avanzarTick() {
+        if (!this.juegoActivo) {
+            return;
+        }
+
+        log("\n[EJECUTANDO TICK " + this.tickActual + "]");
+        faseAtaquePlantas();
+        faseAccionZombies();
+        faseLimpieza();
+
+        this.tickActual++;
+
+        // Verificar si oleada terminó
+        if (oleadaTerminada() && this.oleadaActual < this.totalOleadas - 1 && this.vidas > 0) {
+            this.oleadaActual++;
+            generarOleada(this.oleadaActual);
+            log("\n>>> NUEVA OLEADA: " + (this.oleadaActual + 1) + " / " + this.totalOleadas);
+            log(">>> Se han generado " + this.cantidades[this.oleadaActual] + " zombies");
+        }
+
+        // Verificar condiciones de fin
+        if (this.vidas <= 0) {
+            this.juegoActivo = false;
+            log("\n╔════════════════════════════════════════════════════════════╗");
+            log("║                    ¡GAME OVER!                            ║");
+            log("║            Has perdido todas tus vidas.                   ║");
+            log("╚════════════════════════════════════════════════════════════╝");
+            evento("game_over");
+        } else if (oleadaTerminada() && this.oleadaActual >= this.totalOleadas - 1) {
+            this.juegoActivo = false;
+            this.victoria = true;
+            log("\n╔════════════════════════════════════════════════════════════╗");
+            log("║                    ¡VICTORIA!                             ║");
+            log("║          Has derrotado todas las oleadas.                 ║");
+            log("║              Dinero final: " + this.dinero);
+            log("╚════════════════════════════════════════════════════════════╝");
+            evento("victoria").con("dinero", this.dinero);
+        }
     }
 
     // ========== MOSTRAR ESTADO DEL JUEGO ==========
@@ -206,7 +334,7 @@ public class Juego {
         System.out.println();
     }
 
-    // ========== MÉTODO PRINCIPAL: JUEGO ==========
+    // ========== MÉTODO PRINCIPAL: JUEGO (CONSOLA) ==========
     public void ejecutar() {
         generarOleada(0);
 
@@ -226,39 +354,7 @@ public class Juego {
             }
 
             // Ejecutar Game Loop
-            System.out.println("\n[EJECUTANDO TICK " + this.tickActual + "]");
-            faseAtaquePlantas();
-            faseAccionZombies();
-            faseLimpieza();
-
-            this.tickActual++;
-
-            // Verificar si oleada terminó
-            if (oleadaTerminada() && this.oleadaActual < this.totalOleadas - 1 && this.vidas > 0) {
-                this.oleadaActual++;
-                generarOleada(this.oleadaActual);
-                System.out.println("\n>>> NUEVA OLEADA: " + (this.oleadaActual + 1) + " / " +
-                                 this.totalOleadas);
-                System.out.println(">>> Se han generado " + this.cantidades[this.oleadaActual] +
-                                 " zombies");
-            }
-
-            // Verificar condiciones de fin
-            if (this.vidas <= 0) {
-                this.juegoActivo = false;
-                System.out.println("\n╔════════════════════════════════════════════════════════════╗");
-                System.out.println("║                    ¡GAME OVER!                            ║");
-                System.out.println("║            Has perdido todas tus vidas.                   ║");
-                System.out.println("╚════════════════════════════════════════════════════════════╝");
-            } else if (oleadaTerminada() && this.oleadaActual >= this.totalOleadas - 1) {
-                this.juegoActivo = false;
-                this.victoria = true;
-                System.out.println("\n╔════════════════════════════════════════════════════════════╗");
-                System.out.println("║                    ¡VICTORIA!                             ║");
-                System.out.println("║          Has derrotado todas las oleadas.                 ║");
-                System.out.println("║              Dinero final: " + this.dinero);
-                System.out.println("╚════════════════════════════════════════════════════════════╝");
-            }
+            avanzarTick();
         }
     }
 
@@ -332,6 +428,11 @@ public class Juego {
 
             this.colaZombies.encolar(nuevoZombie);
         }
+
+        evento("nueva_oleada").con("oleada", numOleada + 1).con("zombies", cantidadZombies);
+        if (numOleada == this.totalOleadas - 1 && this.totalOleadas > 1) {
+            evento("oleada_final");
+        }
     }
 
     // ========== COLOCAR / RETIRAR DEFENSA ==========
@@ -349,8 +450,13 @@ public class Juego {
         planta.nodo = nodo;
         this.dinero -= planta.costoEnergia;
         this.pilaDefensas.push(planta);
-        System.out.println("✓ " + planta.nombre + " colocado en Nodo " + nodo.idPosicion +
-                         " (fila " + nodo.fila + ", col " + nodo.columna + "). Dinero restante: " + this.dinero);
+        log("✓ " + planta.nombre + " colocado en Nodo " + nodo.idPosicion +
+            " (fila " + nodo.fila + ", col " + nodo.columna + "). Dinero restante: " + this.dinero);
+        evento("planta_colocada")
+            .con("planta", planta.id)
+            .con("plantaTipo", planta.tipo.name())
+            .con("nodo", nodo.idPosicion)
+            .con("costo", planta.costoEnergia);
     }
 
     private void colocarDefensa() {
@@ -395,23 +501,35 @@ public class Juego {
         colocarPlanta(plantaAColocar, nodoSeleccionado);
     }
 
-    // Saca de la pila la última defensa que siga en pie y devuelve la mitad de su costo
-    private void retirarUltimaDefensa() {
+    // Saca de la pila la última defensa que siga en pie y devuelve la mitad de su costo.
+    // Devuelve la planta retirada, o null si no había ninguna.
+    private Planta retirarUltimaPlanta() {
         Planta planta = this.pilaDefensas.pop();
         while (planta != null && (planta.nodo == null || planta.nodo.planta != planta)) {
             planta = this.pilaDefensas.pop(); // ya fue destruida o retirada
         }
 
         if (planta == null) {
-            System.out.println("❌ No hay defensas para retirar.");
-            return;
+            return null;
         }
 
         planta.nodo.planta = null;
         int reembolso = planta.costoEnergia / 2;
         this.dinero += reembolso;
-        System.out.println("✓ " + planta.nombre + " retirado del Nodo " + planta.nodo.idPosicion +
-                         ". Recuperas " + reembolso + " monedas.");
+        log("✓ " + planta.nombre + " retirado del Nodo " + planta.nodo.idPosicion +
+            ". Recuperas " + reembolso + " monedas.");
+        evento("planta_retirada")
+            .con("planta", planta.id)
+            .con("plantaTipo", planta.tipo.name())
+            .con("nodo", planta.nodo.idPosicion)
+            .con("reembolso", reembolso);
+        return planta;
+    }
+
+    private void retirarUltimaDefensa() {
+        if (retirarUltimaPlanta() == null) {
+            System.out.println("❌ No hay defensas para retirar.");
+        }
     }
 
     private void mostrarInformacion() {
@@ -436,5 +554,161 @@ public class Juego {
                 System.out.print("Entrada inválida. Intenta de nuevo: ");
             }
         }
+    }
+
+    // ==================================================================
+    // API WEB: acciones del jugador (devuelven null si salió bien, o el motivo del error)
+    // ==================================================================
+    public String colocarDefensaApi(String tipo, int fila, int columna) {
+        if (!this.juegoActivo) {
+            return "La partida ya terminó.";
+        }
+
+        Planta planta;
+        if ("MURO".equals(tipo)) {
+            planta = crearPlanta(1);
+        } else if ("TIRADOR".equals(tipo)) {
+            planta = crearPlanta(2);
+        } else if ("MINA".equals(tipo)) {
+            planta = crearPlanta(3);
+        } else {
+            return "Tipo de defensa inválido.";
+        }
+
+        if (this.dinero < planta.costoEnergia) {
+            return "Dinero insuficiente. Necesitas " + planta.costoEnergia + " pero tienes " + this.dinero;
+        }
+
+        Nodo nodo = this.mapa.obtenerNodoEn(fila, columna);
+        if (nodo == null) {
+            return "Esa celda no es parte del camino.";
+        }
+        if (nodo == this.mapa.getCabeza() || nodo.siguiente == null) {
+            return "No se puede construir en el inicio ni en la meta.";
+        }
+        if (nodo.planta != null) {
+            return "Ya hay una planta en ese nodo.";
+        }
+        if (nodo.zombie != null) {
+            return "Hay un zombie en ese nodo.";
+        }
+
+        colocarPlanta(planta, nodo);
+        return null;
+    }
+
+    public String retirarUltimaApi() {
+        if (!this.juegoActivo) {
+            return "La partida ya terminó.";
+        }
+        if (retirarUltimaPlanta() == null) {
+            return "No hay defensas para retirar.";
+        }
+        return null;
+    }
+
+    // ==================================================================
+    // API WEB: estado completo de la partida (para serializar a JSON)
+    // ==================================================================
+    public Map<String, Object> estado() {
+        Map<String, Object> e = new LinkedHashMap<>();
+        e.put("tick", this.tickActual);
+        e.put("dinero", this.dinero);
+        e.put("vidas", this.vidas);
+        e.put("vidasIniciales", this.vidasInicial);
+        e.put("oleada", this.oleadaActual + 1);
+        e.put("totalOleadas", this.totalOleadas);
+        e.put("activo", this.juegoActivo);
+        e.put("victoria", this.victoria);
+        e.put("zombisEnMapa", this.colaActivos.getTamanio());
+        e.put("zombisPendientes", this.colaZombies.getTamanio());
+
+        // Mapa: nodos en el orden del camino (cabeza -> meta)
+        List<Object> nodos = new ArrayList<>();
+        Nodo actual = this.mapa.getCabeza();
+        while (actual != null) {
+            Map<String, Object> n = new LinkedHashMap<>();
+            n.put("id", actual.idPosicion);
+            n.put("fila", actual.fila);
+            n.put("columna", actual.columna);
+            n.put("tipo", actual == this.mapa.getCabeza() ? "inicio" : (actual.siguiente == null ? "meta" : "camino"));
+            n.put("planta", actual.planta == null ? null : entidadPlanta(actual.planta));
+            n.put("zombie", actual.zombie == null ? null : entidadZombie(actual.zombie));
+            nodos.add(n);
+            actual = actual.siguiente;
+        }
+        e.put("nodos", nodos);
+
+        // Cola (FIFO): zombies pendientes, del frente al final
+        List<Object> cola = new ArrayList<>();
+        for (Zombie z : this.colaZombies.comoLista()) {
+            cola.add(entidadZombie(z));
+        }
+        e.put("cola", cola);
+
+        // Pila (LIFO): defensas que siguen en pie, del tope a la base
+        List<Object> pila = new ArrayList<>();
+        for (Planta p : this.pilaDefensas.comoLista()) {
+            if (p.nodo != null && p.nodo.planta == p) {
+                Map<String, Object> m = entidadPlanta(p);
+                m.put("nodo", p.nodo.idPosicion);
+                pila.add(m);
+            }
+        }
+        e.put("pila", pila);
+        return e;
+    }
+
+    private Map<String, Object> entidadPlanta(Planta p) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", p.id);
+        m.put("tipo", p.tipo.name());
+        m.put("hp", p.hp);
+        m.put("hpMax", p.hpMax);
+        return m;
+    }
+
+    private Map<String, Object> entidadZombie(Zombie z) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", z.id);
+        m.put("tipo", z.tipo.name());
+        m.put("hp", z.hp);
+        m.put("hpMax", z.hpMax);
+        m.put("velocidad", z.velocidad);
+        m.put("ticks", z.ticksAcumulados);
+        return m;
+    }
+
+    // Datos fijos del juego (costos, vida, daño...) para las cartas y el Libro
+    public static Map<String, Object> catalogo() {
+        Map<String, Object> c = new LinkedHashMap<>();
+        List<Object> plantas = new ArrayList<>();
+        for (Planta p : new Planta[] {Planta.MURO, Planta.TIRADOR, Planta.MINA}) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("tipo", p.tipo.name());
+            m.put("nombre", p.nombre);
+            m.put("hp", p.hpMax);
+            m.put("dano", p.danoBase);
+            m.put("costo", p.costoEnergia);
+            plantas.add(m);
+        }
+        List<Object> zombies = new ArrayList<>();
+        for (Zombie z : new Zombie[] {Zombie.BASICO, Zombie.RAPIDO, Zombie.TANQUE}) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("tipo", z.tipo.name());
+            m.put("nombre", z.nombre);
+            m.put("hp", z.hpMax);
+            m.put("dano", z.danoBase);
+            m.put("velocidad", z.velocidad);
+            m.put("recompensa", z.recompensa);
+            zombies.add(m);
+        }
+        c.put("plantas", plantas);
+        c.put("zombies", zombies);
+        c.put("dineroInicial", 800);
+        c.put("vidasIniciales", 3);
+        c.put("oleadas", OLEADAS_COMPLETO.length);
+        c.put("tam", ListaEnlazada.TAM);
+        return c;
     }
 }

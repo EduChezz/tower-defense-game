@@ -54,6 +54,17 @@ public class Pila {
         return this.tamanio == 0;
     }
 
+    // Copia del contenido de tope a base (no modifica la pila)
+    public java.util.List<Planta> comoLista() {
+        java.util.List<Planta> lista = new java.util.ArrayList<>();
+        NodoPila actual = this.tope;
+        while (actual != null) {
+            lista.add(actual.planta);
+            actual = actual.siguiente;
+        }
+        return lista;
+    }
+
     public void imprimirPila() {
         if (this.estaVacia()) {
             System.out.println("PILA DEFENSAS (LIFO): [Vacía]");
