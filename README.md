@@ -7,10 +7,38 @@ Profesor: PhD. Félix Fernández Peña.
 ## Estado del proyecto
 
 - ✅ **Fase 1 — Lógica del juego (consola):** motor completo en Java usando
-  Lista Enlazada (mapa), Cola FIFO (horda de zombies) y Pila LIFO (defensas).
-- 🚧 **Fase 2 — Interfaz gráfica (en curso):** frontend web (HTML/CSS/JS) que
-  reemplazará la interacción por consola, con imágenes y sonidos para
-  personajes y escenarios.
+  Lista Enlazada (mapa), Cola FIFO (horda de zombis) y Pila LIFO (defensas).
+- ✅ **Fase 2 — Interfaz gráfica jugable:** el mismo motor Java expuesto como API y
+  una interfaz web (HTML/CSS/JS) con menú, tablero animado, sonidos y música,
+  Libro de entidades, demos automáticas y pantallas de victoria / game over.
+
+## Cómo jugar (interfaz web)
+
+Requisito: **JDK 17 o superior** (`javac` y `java` en el PATH).
+
+- **Windows:** doble clic en [`iniciar_juego.bat`](iniciar_juego.bat) — compila, arranca el servidor y abre el navegador.
+- **Mac / Linux:** `./iniciar_juego.sh`
+- **A mano:**
+  ```bash
+  cd backend
+  javac -encoding UTF-8 -d out src/*.java
+  java -cp out ServidorApi ../frontend 8080     # luego abre http://127.0.0.1:8080/
+  ```
+
+Usa `127.0.0.1` y no `localhost`: en Windows `localhost` prueba primero IPv6 y cada
+petición se demora ~0.2 s. El servidor solo escucha en esa dirección local.
+
+**Controles:** elige una defensa (cartas o teclas `1` `2` `3`) y haz clic en una celda del
+camino; `R` retira la última defensa (Pila LIFO); `Espacio` inicia/pausa; clic derecho o
+`Esc` cancela la selección. El juego corre en tiempo real (velocidades x1/x2/x3).
+
+## Cómo ejecutar la versión de consola (Fase 1)
+
+```bash
+cd backend
+javac -encoding UTF-8 -d out src/*.java
+java -cp out Main
+```
 
 ## Estructura del repositorio
 
@@ -20,7 +48,10 @@ tower-defense-game/
 │   └── src/               # Código Java (motor del juego, estructuras de datos)
 │       ├── Main.java
 │       ├── Menu.java
-│       ├── Juego.java
+│       ├── Juego.java          # Motor (consola y API): GameLoop de 3 fases, eventos, estado
+│       ├── ServidorApi.java    # Servidor HTTP + API JSON (sin librerías externas)
+│       ├── EventoJuego.java    # Sucesos del tick (disparo, muerte...) para animar/sonar
+│       ├── Json.java           # Escritura/lectura mínima de JSON
 │       ├── Cola.java
 │       ├── Pila.java
 │       ├── ListaEnlazada.java
@@ -32,7 +63,12 @@ tower-defense-game/
 ├── frontend/
 │   ├── index.html
 │   ├── css/styles.css
-│   ├── js/main.js
+│   ├── js/
+│   │   ├── main.js        # Pantallas, HUD, controles, bucle de ticks, demo
+│   │   ├── tablero.js     # Mapa 7x7, sprites, animaciones y proyectiles
+│   │   ├── audio.js       # Efectos y música
+│   │   ├── assets.js      # Precarga de imágenes/animaciones
+│   │   └── api.js         # Llamadas al backend
 │   └── assets/
 │       ├── manifest.json      # Tamaño, cuadros, duración y loop de cada animación
 │       ├── images/
@@ -45,7 +81,9 @@ tower-defense-game/
 │       ├── videos/            # Fondo del menú y logo (sin audio)
 │       └── sounds/
 │           ├── effects/       # Disparos, explosiones, impactos, etc.
-│           └── music/         # Música del menú, de la partida y de la victoria
+│           └── music/         # Música del menú, de la partida y de la victoria (.mp3)
+│
+├── iniciar_juego.bat / .sh    # Compila y arranca el juego
 │
 ├── tools/                     # Scripts para preparar los assets (ver más abajo)
 │   ├── procesar_assets.py
@@ -58,27 +96,31 @@ tower-defense-game/
 └── README.md
 ```
 
-## Cómo ejecutar la Fase 1 (consola, Java)
+## Arquitectura y API
 
-```bash
-cd backend/src
-javac *.java
-java Main
-```
+El **backend decide todo** (reglas, estructuras de datos, oleadas); el navegador solo dibuja el
+estado y envía acciones. `Juego.java` sigue funcionando en consola: en modo API no imprime y
+registra cada suceso como evento.
 
-## Cómo ver la Fase 2 (frontend, en construcción)
+| Método y ruta | Qué hace |
+|---|---|
+| `GET /api/catalogo` | Datos fijos: costo, vida, daño, velocidad, recompensa |
+| `POST /api/juego/nuevo` `{"demo":false}` | Crea una partida (demo = 5 oleadas) |
+| `GET /api/estado` | Estado actual |
+| `POST /api/tick` | Avanza un tick (ataque de plantas → acción de zombis → limpieza) |
+| `POST /api/defensa` `{"tipo":"MURO","fila":0,"columna":3}` | Coloca una defensa |
+| `POST /api/retirar` | Retira la última defensa colocada (Pila LIFO, devuelve 50 %) |
 
-```bash
-cd frontend
-# Abrir index.html directamente en el navegador, o servirlo con un servidor
-# estático simple, por ejemplo:
-python -m http.server 8080
-```
+Cada respuesta trae `estado` (dinero, vidas, oleada, los 25 nodos de la Lista Enlazada con su
+planta/zombi, la **Cola** de pendientes y la **Pila** de defensas) y `eventos` del tick:
+`nueva_oleada`, `oleada_final`, `zombie_entra`, `zombie_mueve`, `zombie_ataca`, `zombie_muere`,
+`zombie_meta`, `disparo`, `mina_explota`, `planta_colocada`, `planta_retirada`,
+`planta_destruida`, `victoria` y `game_over`. El frontend anima y hace sonar cada evento.
 
-Por ahora el frontend dibuja el tablero 7x7 de forma estática. El siguiente
-paso es exponer el estado del `Juego.java` mediante una API (backend) para
-que el frontend consuma el estado real de la partida y envíe acciones del
-jugador (colocar/retirar defensas).
+El servidor también sirve `frontend/` (con soporte de `Range`, necesario para el video en loop).
+
+**Atajos de desarrollo** (parámetros de la URL): `?auto=menu|libro|creditos|juego|demo|fin`,
+`&coloca=MURO@4,TIRADOR@6` (tipo@nodo), `&inicia=1`, `&vel=0..2`, `&mudo=1`.
 
 ## Assets del juego
 
@@ -86,13 +128,14 @@ Todo vive en `frontend/assets/`. Las animaciones son GIF con fondo transparente;
 `manifest.json` indica el tamaño, la cantidad de cuadros, la duración y si cada una
 va en loop (`en_loop: true`) o se reproduce **una sola vez** (`false`: muertes,
 explosión, destrucción de plantas e impacto; terminan en un cuadro vacío, así que el
-elemento desaparece y el juego debe quitarlo del DOM al cumplirse `duracion_ms`).
+elemento desaparece y el juego lo quita del DOM al cumplirse `duracion_ms`). `ancla` es el punto
+donde pisa el personaje, `ref` su tamaño en reposo y `hito_ms` el instante clave de un clip
+(cuando sale la semilla del Tirador).
 
 Las animaciones de un mismo personaje comparten lienzo y punto de apoyo
 (`bottom-center`), por lo que se pueden intercambiar sin que "salten". Los GIF traen
-la sombra recortada: el juego debe dibujar su propia sombra por CSS. Los personajes
-están de perfil mirando a la derecha; hay que voltearlos (`scaleX(-1)`) al avanzar a
-la izquierda.
+la sombra recortada: el juego dibuja la suya por CSS. Los personajes están de perfil mirando
+a la derecha y el tablero los voltea (`scaleX(-1)`) al avanzar o disparar hacia la izquierda.
 
 ### Plantas y zombies (`images/characters/`)
 
@@ -127,31 +170,33 @@ estático por personaje para las cartas y el Libro: `plants/muro.png`,
 
 ### Sonidos (`sounds/`)
 
-Efectos (pack original de Plants vs Zombies, renombrados según el evento de `Juego.java`):
+Efectos (pack original de Plants vs Zombies, renombrados según el evento de `Juego.java` y convertidos a `.mp3`;
+en este equipo Chrome tardaba ~3 s por cada `.ogg`/`.wav` y recibía vacías las descargas de audio con `fetch`, por eso se
+usa `.mp3` con elementos `<audio>`):
 
 | Archivo (`effects/`) | Evento |
 |---|---|
-| `colocar_defensa.ogg` | Se coloca una planta |
-| `error.ogg` | Dinero insuficiente / acción inválida |
-| `retirar_defensa.ogg` | Se retira la última defensa colocada |
-| `disparo.ogg` | El Tirador ataca |
-| `explosion_mina.ogg` | La Mina explota |
-| `zombie_hit.ogg` | Un zombie recibe daño |
-| `zombie_ataque.ogg` | Un zombie ataca una planta |
-| `planta_destruida.ogg` | Una planta llega a 0 HP |
-| `zombie_muerte.ogg` | Un zombie es derrotado |
-| `perder_vida.ogg` | Un zombie llega a la meta (pierdes 1 vida) |
-| `nueva_oleada.ogg` | Comienza una nueva oleada |
-| `oleada_final.ogg` | Comienza la última oleada |
-| `click_menu.ogg` | Click en botón / navegación de menú |
-| `victoria.ogg` | Fin de partida ganada |
-| `game_over.ogg` | Fin de partida perdida |
+| `colocar_defensa.mp3` | Se coloca una planta |
+| `error.mp3` | Dinero insuficiente / acción inválida |
+| `retirar_defensa.mp3` | Se retira la última defensa colocada |
+| `disparo.mp3` | El Tirador ataca |
+| `explosion_mina.mp3` | La Mina explota |
+| `zombie_hit.mp3` | Un zombie recibe daño |
+| `zombie_ataque.mp3` | Un zombie ataca una planta |
+| `planta_destruida.mp3` | Una planta llega a 0 HP |
+| `zombie_muerte.mp3` | Un zombie es derrotado |
+| `perder_vida.mp3` | Un zombie llega a la meta (pierdes 1 vida) |
+| `nueva_oleada.mp3` | Comienza una nueva oleada |
+| `oleada_final.mp3` | Comienza la última oleada |
+| `click_menu.mp3` | Click en botón / navegación de menú |
+| `victoria.mp3` | Fin de partida ganada |
+| `game_over.mp3` | Fin de partida perdida |
 
 | Archivo (`music/`) | Uso |
 |---|---|
-| `musica_menu.ogg` | Menú principal (loop sin salto, -20 LUFS) |
-| `musica_partida.ogg` | Durante la partida (loop sin salto, -20 LUFS) |
-| `musica_victoria.ogg` | Pantalla de victoria |
+| `musica_menu.mp3` | Menú principal (loop sin salto, -20 LUFS) |
+| `musica_partida.mp3` | Durante la partida (loop sin salto, -20 LUFS) |
+| `musica_victoria.mp3` | Pantalla de victoria |
 
 ### Cómo se preparan los assets (`tools/`)
 
@@ -177,6 +222,7 @@ el mismo nombre (`mina_normal.gif`, `mina_explota.gif`) y volver a ejecutarlo.
   con el de `mina_normal`).
 - Logo definitivo (el actual dice "PLANT DEFENSE" y trae otras plantas).
 - Fondos de victoria/game over animados (los actuales son imágenes).
+- Ajustar el equilibrio del juego (con 1 Muro y 2 Tiradores ya se ganan las 8 oleadas).
 
 ## Estructuras de datos utilizadas
 
