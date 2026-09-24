@@ -4,35 +4,160 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tower Defense - Plantas vs Zombies</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%B1%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <header class="hud">
-    <div class="hud-item">💰 Dinero: <span id="dinero">800</span></div>
-    <div class="hud-item">❤️ Vidas: <span id="vidas">3</span></div>
-    <div class="hud-item">🌊 Oleada: <span id="oleada">1</span>/8</div>
-  </header>
+  <div id="app">
 
-  <main id="tablero" class="tablero">
-    <!-- El mapa 7x7 se renderiza aquí dinámicamente desde js/main.js -->
-  </main>
+    <!-- ============ CARGA ============ -->
+    <section id="pantalla-carga" class="pantalla activa">
+      <div class="carga-caja">
+        <h1 class="titulo-juego">Tower Defense</h1>
+        <p class="subtitulo">Plantas vs Zombies</p>
+        <div class="barra-carga"><i id="carga-barra"></i></div>
+        <p id="carga-texto">Cargando…</p>
+        <button id="btn-comenzar" class="btn grande" hidden>▶ Presiona para comenzar</button>
+        <p class="creditos-mini">Estructura de Datos · Universidad Técnica de Ambato</p>
+      </div>
+    </section>
 
-  <aside class="panel-defensas">
-    <h2>Defensas</h2>
-    <div class="carta-defensa" data-tipo="muro">
-      <img src="assets/images/characters/plants/muro.png" alt="Muro" onerror="this.style.display='none'">
-      <p>Muro<br>150</p>
-    </div>
-    <div class="carta-defensa" data-tipo="tirador">
-      <img src="assets/images/characters/plants/tirador.png" alt="Tirador" onerror="this.style.display='none'">
-      <p>Tirador<br>200</p>
-    </div>
-    <div class="carta-defensa" data-tipo="mina">
-      <img src="assets/images/characters/plants/mina.png" alt="Mina" onerror="this.style.display='none'">
-      <p>Mina<br>250</p>
-    </div>
-  </aside>
+    <!-- ============ MENÚ ============ -->
+    <section id="pantalla-menu" class="pantalla">
+      <video id="video-fondo" class="video-fondo" src="assets/videos/fondo_menu.mp4" preload="none" muted loop playsinline></video>
+      <div class="velo"></div>
+      <div class="menu-caja">
+        <div class="logo-marco">
+          <video src="assets/videos/logo_juego.mp4" preload="none" muted loop playsinline></video>
+        </div>
+        <nav class="menu-botones">
+          <button class="btn grande" data-accion="jugar">▶ Iniciar juego</button>
+          <button class="btn" data-accion="libro">📖 Libro</button>
+          <button class="btn" data-accion="demo">🎬 Demo (simulación)</button>
+          <button class="btn" data-accion="creditos">🎓 Créditos</button>
+        </nav>
+        <div class="menu-audio">
+          <button class="btn mini" data-accion="musica" title="Música">🎵 <span>Música: sí</span></button>
+          <button class="btn mini" data-accion="efectos" title="Efectos">🔊 <span>Efectos: sí</span></button>
+        </div>
+      </div>
 
+      <!-- Elección de demo -->
+      <div id="dialogo-demo" class="dialogo" hidden>
+        <div class="dialogo-caja">
+          <h2>Demostración</h2>
+          <p>El juego se juega solo (5 oleadas). Mira cómo se comportan la Cola, la Pila y la Lista Enlazada.</p>
+          <button class="btn grande" data-accion="demo-ganar">🏆 Demo: escenario ganar</button>
+          <button class="btn" data-accion="demo-perder">💀 Demo: escenario perder (sin defensas)</button>
+          <button class="btn mini" data-accion="cerrar-dialogo">Cancelar</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ LIBRO ============ -->
+    <section id="pantalla-libro" class="pantalla pantalla-panel">
+      <div class="panel-caja">
+        <header class="panel-cabecera">
+          <h2>📖 Libro de entidades</h2>
+          <button class="btn mini" data-accion="volver-menu">← Volver</button>
+        </header>
+        <div class="libro-contenido">
+          <h3>Plantas (defensas)</h3>
+          <div id="libro-plantas" class="libro-fila"></div>
+          <h3>Zombis (enemigos)</h3>
+          <div id="libro-zombis" class="libro-fila"></div>
+          <p id="libro-reglas" class="libro-reglas"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CRÉDITOS ============ -->
+    <section id="pantalla-creditos" class="pantalla pantalla-panel">
+      <div class="panel-caja panel-angosto">
+        <header class="panel-cabecera">
+          <h2>🎓 Créditos</h2>
+          <button class="btn mini" data-accion="volver-menu">← Volver</button>
+        </header>
+        <div class="creditos-texto">
+          <p class="destacado">TOWER DEFENSE — PLANTAS VS ZOMBIES</p>
+          <p><b>Desarrolladores</b><br>Eduardo Sánchez · Xander Real · Elvis Zambrano</p>
+          <p><b>Universidad</b><br>Universidad Técnica de Ambato (UTA)<br>Carrera de Tecnologías de la Información</p>
+          <p><b>Asignatura</b><br>Estructura de Datos<br>Profesor: PhD. Félix Fernández Peña</p>
+          <p><b>Estructuras de datos utilizadas</b><br>Lista Enlazada Simple (el mapa) · Cola FIFO (horda de zombis) · Pila LIFO (defensas del jugador)</p>
+          <p><b>Tecnología</b><br>Motor y servidor en Java · Interfaz web en HTML, CSS y JavaScript</p>
+          <p class="pequeno">Año 2026 · Efectos de sonido del pack original de Plants vs Zombies; imágenes, animaciones y música generadas con IA.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ JUEGO ============ -->
+    <section id="pantalla-juego" class="pantalla">
+      <header class="hud">
+        <div class="hud-grupo">
+          <div class="hud-item hud-dinero" title="Dinero"><img id="hud-icono-dinero" alt=""><b id="hud-dinero">800</b></div>
+          <div class="hud-item hud-vidas" id="hud-vidas" title="Vidas"></div>
+        </div>
+        <div class="hud-centro">
+          <div class="hud-oleada">Oleada <b id="hud-oleada">1</b> / <span id="hud-total">8</span></div>
+          <div class="hud-zombis">En el mapa: <b id="hud-enmapa">0</b> · Por llegar: <b id="hud-pendientes">0</b></div>
+        </div>
+        <div class="hud-grupo hud-controles">
+          <button id="btn-pausa" class="btn mini" title="Espacio">▶ Iniciar</button>
+          <button id="btn-vel" class="btn mini" title="Velocidad">⏩ x1</button>
+          <button id="btn-musica" class="btn mini" title="Música">🎵</button>
+          <button id="btn-efectos" class="btn mini" title="Efectos">🔊</button>
+          <button id="btn-salir" class="btn mini">☰ Menú</button>
+        </div>
+      </header>
+
+      <main class="mesa">
+        <aside class="panel panel-izq">
+          <h3>Defensas</h3>
+          <div id="cartas" class="cartas"></div>
+          <button id="btn-retirar" class="btn" title="Tecla R">↩ Retirar última <small>(+50%)</small></button>
+          <p id="ayuda" class="ayuda">Elige una defensa y haz clic en una celda del <b>camino</b>. Las plantas bloquean, disparan o explotan.</p>
+        </aside>
+
+        <div class="centro" id="centro">
+          <div class="tablero-marco">
+            <div id="tablero"></div>
+            <div id="banner" class="banner"></div>
+            <div id="insignia-demo" class="insignia-demo" hidden>DEMO</div>
+          </div>
+        </div>
+
+        <aside class="panel panel-der">
+          <h3>Cola de zombis <small>FIFO</small></h3>
+          <div id="cola-lista" class="cola-lista"></div>
+          <h3>Pila de defensas <small>LIFO</small></h3>
+          <div id="pila-lista" class="pila-lista"></div>
+          <h3>Registro</h3>
+          <ul id="registro" class="registro"></ul>
+        </aside>
+      </main>
+      <div id="flash" class="flash"></div>
+    </section>
+
+    <!-- ============ FIN DE PARTIDA ============ -->
+    <section id="pantalla-fin" class="pantalla">
+      <div id="fin-fondo" class="fin-fondo"></div>
+      <div class="fin-caja">
+        <h1 id="fin-titulo">¡VICTORIA!</h1>
+        <p id="fin-detalle"></p>
+        <div class="fin-botones">
+          <button class="btn grande" data-accion="jugar-de-nuevo">↻ Jugar de nuevo</button>
+          <button class="btn" data-accion="volver-menu">☰ Menú principal</button>
+        </div>
+      </div>
+    </section>
+
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <script src="js/audio.js"></script>
+  <script src="js/assets.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/tablero.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
