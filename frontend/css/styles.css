@@ -243,6 +243,8 @@ img { -webkit-user-drag: none; }
 #tablero.modo-colocar { cursor: crosshair; }
 .capa { position: absolute; inset: 0; }
 .capa-celdas { overflow: hidden; border-radius: 8px; }
+.capa-rango { pointer-events: none; }
+.rango-celda { position: absolute; box-sizing: border-box; border-radius: 8px; border: 2px dashed rgba(255, 210, 63, .9); background: rgba(255, 210, 63, .26); animation: latido 1.2s ease-in-out infinite; }
 .capa-ent, .capa-fx { pointer-events: none; }
 .celda, .celda-camino { position: absolute; }
 .celda { background-size: cover; background-position: center; }
@@ -320,6 +322,7 @@ img { -webkit-user-drag: none; }
 .fin-botones { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
 
 /* ------------------------------------------------------------ animaciones */
+@keyframes latido { 0%, 100% { background: rgba(255, 210, 63, .22); } 50% { background: rgba(255, 210, 63, .38); } }
 @keyframes pop { from { scale: .2; opacity: 0; } to { scale: 1; opacity: 1; } }
 @keyframes subir { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -48px); } }
 @keyframes banner {

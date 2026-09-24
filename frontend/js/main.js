@@ -18,14 +18,14 @@
   const CAMINA_Z = { BASICO: 'images/characters/zombies/basico_caminando.gif', RAPIDO: 'images/characters/zombies/rapido_corriendo.gif', TANQUE: 'images/characters/zombies/tanque_caminando.gif' };
   const DESCRIPCION = {
     MURO: 'Bloquea el paso: los zombis deben destruirlo para avanzar.',
-    TIRADOR: 'Dispara a distancia al zombi más cercano que viene por el camino.',
+    TIRADOR: 'Dispara al zombi más cercano que esté dentro de su alcance, por el camino hacia atrás.',
     MINA: 'Explota al contacto con un zombi (999 de daño) y se consume.',
     BASICO: 'Equilibrado en vida, daño y velocidad.',
     RAPIDO: 'Poca vida pero golpea fuerte.',
     TANQUE: 'Mucha vida; avanza lento (2 ticks por nodo) y golpea poco.',
   };
   // Estrategia de la demo ganadora: [tipo, id de nodo] (la misma de la versión de consola)
-  const ESTRATEGIA_DEMO = [['MURO', 4], ['TIRADOR', 6], ['TIRADOR', 7], ['MINA', 2], ['TIRADOR', 8], ['MURO', 3], ['TIRADOR', 9]];
+  const ESTRATEGIA_DEMO = [['TIRADOR', 6], ['MURO', 5], ['TIRADOR', 7], ['MURO', 4], ['MINA', 3], ['TIRADOR', 8], ['TIRADOR', 9]];
 
   const S = {
     catalogo: null,
@@ -77,6 +77,7 @@
         }),
       ]);
       S.catalogo = cat;
+      TD.tablero.setAlcance(cat.alcanceTirador);
     } catch (e) {
       texto.textContent = 'No pude conectar con el servidor del juego. ¿Está ejecutándose ServidorApi? (' + e.message + ')';
       texto.classList.add('error');
@@ -114,7 +115,7 @@
       marco.className = 'tarjeta-gif';
       marco.appendChild(imgAnimada(esPlanta ? REPOSO_P[tipo] : CAMINA_Z[tipo]));
       const stats = esPlanta
-        ? '<li>❤ Vida <b>' + d.hp + '</b></li><li>⚔ Daño <b>' + d.dano + '</b></li><li>💰 Costo <b>' + d.costo + '</b></li>'
+        ? '<li>❤ Vida <b>' + d.hp + '</b></li><li>⚔ Daño <b>' + d.dano + '</b></li>' + (tipo === 'TIRADOR' ? '<li>🎯 Alcance <b>' + S.catalogo.alcanceTirador + ' casillas</b></li>' : '') + '<li>💰 Costo <b>' + d.costo + '</b></li>'
         : '<li>❤ Vida <b>' + d.hp + '</b></li><li>⚔ Daño <b>' + d.dano + '</b></li><li>👣 Velocidad <b>' + d.velocidad + ' tick/nodo</b></li><li>💰 Recompensa <b>' + d.recompensa + '</b></li>';
       const info = document.createElement('div');
       info.innerHTML = '<h4>' + (esPlanta ? d.nombre : NOMBRES_Z[tipo]) + '</h4><p>' + DESCRIPCION[tipo] + '</p><ul>' + stats + '</ul>';

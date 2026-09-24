@@ -39,6 +39,8 @@
   let fantasma = null;
   let ultimoEstado = null;
   let temporizadores = new Set();
+  let alcance = 4;          // nodos hacia atrás que alcanza el Tirador (lo informa el backend)
+  let elRango = null;
 
   // ---------------------------------------------------------------- utilidades
   function espera(ms, fn) {
@@ -202,7 +204,8 @@
     elEnt = document.createElement('div'); elEnt.className = 'capa capa-ent';
     elFx = document.createElement('div'); elFx.className = 'capa capa-fx';
     elResalte = document.createElement('div'); elResalte.className = 'resalte';
-    elTablero.append(elCeldas, elEnt, elFx, elResalte);
+    elRango = document.createElement('div'); elRango.className = 'capa capa-rango';
+    elTablero.append(elCeldas, elRango, elEnt, elFx, elResalte);
 
     urlCesped = A.url('images/scenarios/tile_cesped.png');
     urlCamino = A.url('images/scenarios/tile_camino.png');
@@ -363,22 +366,45 @@
     const info = A.info(PLANTAS.TIRADOR.disparo);
     espera(info.duracion_ms, () => { if (plantas.get(ev.planta) === pl && !pl.destruyendo) cambiarGif(pl, PLANTAS.TIRADOR.reposo); });
 
-    // La semilla sale de la boca cuando el clip llega a su "hito"
-    const lanzar = info.hito_ms || 0;
+    // Ruta de la semilla: sale de la boca y recorre el CAMINO, casilla por casilla, hasta el zombi
+    // (los nodos son consecutivos: desde -> desde-1 -> ... -> hacia), no en línea recta.
     const boca = { x: pl.x + (mirarIzq ? -1 : 1) * celda * 0.42, y: pl.y - celda * 0.72 };
-    const meta = nodoCentro(ev.hacia);
-    const dx = meta.x - boca.x, dy = meta.y - boca.y;
-    const vuelo = Math.max(200, Math.min(520, Math.hypot(dx, dy) / (celda * 7) * 1000));
+    const ruta = [boca];
+    for (let id = ev.desde - 1; id >= ev.hacia; id--) ruta.push(nodoCentro(id));
+    const dist = [0];
+    for (let i = 1; i < ruta.length; i++) dist.push(dist[i - 1] + Math.hypot(ruta[i].x - ruta[i - 1].x, ruta[i].y - ruta[i - 1].y));
+    const total = dist[dist.length - 1] || 1;
+    const velocidad = celda * 8 * Math.min(2.5, 1400 / tickMs);  // px/s: más rápida si el juego va acelerado
+    const vuelo = Math.max(220, Math.min(1300, (total / velocidad) * 1000));
+    const meta = ruta[ruta.length - 1];
 
-    espera(lanzar, () => {
+    // Posición: pasa por el centro de cada casilla. Rotación: apunta en el sentido de cada tramo (giro suave en las esquinas)
+    const tramos = [];
+    let previo = null;
+    for (let i = 0; i < ruta.length - 1; i++) {
+      let ang = Math.atan2(ruta[i + 1].y - ruta[i].y, ruta[i + 1].x - ruta[i].x);
+      if (previo !== null) {
+        while (ang - previo > Math.PI) ang -= 2 * Math.PI;
+        while (ang - previo < -Math.PI) ang += 2 * Math.PI;
+      }
+      previo = ang;
+      tramos.push({ ang, ini: dist[i] / total, fin: dist[i + 1] / total });
+    }
+    const kfPos = ruta.map((p, i) => ({ transform: 'translate(' + p.x + 'px,' + p.y + 'px)', offset: dist[i] / total }));
+    const kfRot = [];
+    tramos.forEach((t, i) => {
+      const w = Math.min(0.05, (t.fin - t.ini) * 0.25);
+      kfRot.push({ transform: 'rotate(' + t.ang + 'rad)', offset: i === 0 ? 0 : t.ini + w });
+      kfRot.push({ transform: 'rotate(' + t.ang + 'rad)', offset: i === tramos.length - 1 ? 1 : t.fin - w });
+    });
+
+    // La semilla sale de la boca cuando el clip llega a su "hito"
+    espera(info.hito_ms || 0, () => {
       TD.audio.efecto('disparo');
       const bala = crearEnt(PROYECTIL, boca.x, boca.y, { clase: 'bala', centro: true, escala: (celda * 0.85) / A.info(PROYECTIL).ancho });
-      bala.rot = Math.atan2(dy, dx);
-      actualizarTransformImg(bala);
       bala.el.style.zIndex = 5000;
-      void bala.el.offsetWidth;
-      moverA(bala, meta.x, meta.y, vuelo, true);
-      bala.el.style.zIndex = 5000;
+      bala.el.animate(kfPos, { duration: vuelo, easing: 'linear', fill: 'forwards' });
+      bala.img.animate(kfRot, { duration: vuelo, easing: 'linear', fill: 'forwards' });
       espera(vuelo, () => {
         quitar(bala);
         const z = zombis.get(ev.zombie);
@@ -394,7 +420,7 @@
         }
       });
     });
-    return lanzar + vuelo + 40;  // cuándo termina el impacto (para retrasar la muerte)
+    return (info.hito_ms || 0) + vuelo + 40;  // cuándo termina el impacto (para retrasar la muerte)
   }
 
   function evMina(ev) {
@@ -476,12 +502,30 @@
     espera(260, () => { quitar(pl); plantas.delete(ev.planta); });
   }
 
+  // Marca en el camino las casillas que alcanzaría un Tirador colocado en `nodo` (las `alcance` anteriores)
+  function mostrarRango(nodo) {
+    if (!elRango) return;
+    elRango.innerHTML = '';
+    if (!nodo) return;
+    for (let id = Math.max(0, nodo.id - alcance); id < nodo.id; id++) {
+      const n = nodoPorId.get(id);
+      const d = document.createElement('div');
+      d.className = 'rango-celda';
+      d.style.left = n.columna * celda + 'px';
+      d.style.top = n.fila * celda + 'px';
+      d.style.width = celda + 'px';
+      d.style.height = celda + 'px';
+      elRango.appendChild(d);
+    }
+  }
+
   // ---------------------------------------------------------------- API pública
   TD.tablero = {
     PLANTAS, ZOMBIS, TAM,
     construir,
 
     setTickMs(ms) { tickMs = ms; },
+    setAlcance(n) { alcance = n; },
     celda() { return celda; },
 
     reconstruir(elementos, tamDisponible) {
@@ -540,6 +584,7 @@
     resaltar(fila, columna, tipo) {  // cuadro de la celda bajo el cursor + fantasma de la defensa elegida
       if (!elResalte) return;
       if (fila == null) {
+        mostrarRango(null);
         elResalte.style.display = 'none';
         if (fantasma) { quitar(fantasma); fantasma = null; }
         return;
@@ -551,6 +596,7 @@
       elResalte.style.width = celda + 'px';
       elResalte.style.height = celda + 'px';
       elResalte.className = 'resalte ' + (tipo ? (ok ? 'valido' : 'invalido') : '');
+      mostrarRango(tipo === 'TIRADOR' && ok ? nodoPorPos.get(fila + ',' + columna) : null);
       if (tipo && ok) {
         const q = pos({ fila, columna });
         if (!fantasma || fantasma.tipo !== tipo) {

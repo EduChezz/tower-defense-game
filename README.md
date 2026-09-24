@@ -32,6 +32,29 @@ petición se demora ~0.2 s. El servidor solo escucha en esa dirección local.
 camino; `R` retira la última defensa (Pila LIFO); `Espacio` inicia/pausa; clic derecho o
 `Esc` cancela la selección. El juego corre en tiempo real (velocidades x1/x2/x3).
 
+## Reglas y equilibrio
+
+Empiezas con **800 monedas** y **3 vidas**; hay **8 oleadas** (40 zombis, entra uno por tick).
+Cada zombi derrotado da monedas y retirar una defensa devuelve el 50 % de su costo.
+
+| Defensa | Costo | Vida | Daño | Detalle |
+|---|---|---|---|---|
+| Muro | 150 | 250 | — | Bloquea el paso |
+| Tirador | 200 | 100 | 10 | Alcance de **4 casillas** hacia atrás por el camino |
+| Mina | 250 | 1 | 999 | Explota al contacto y se consume |
+
+| Zombi | Vida | Daño | Velocidad | Recompensa |
+|---|---|---|---|---|
+| Básico | 100 | 20 | 1 tick/nodo | 50 |
+| Rápido | 50 | 40 | 1 tick/nodo | 75 |
+| Tanque | 300 | 10 | 2 ticks/nodo | 100 |
+
+La clave es **retener a los zombis dentro del alcance de los Tiradores** (un Muro justo delante) y
+reponer lo que caiga. Estos valores se calibraron simulando miles de partidas con el propio motor:
+sin defensas o colocando al azar no se gana; una distribución razonable gana ~78 % de las veces
+(con ~2.3 vidas de 3) y la mejor gana siempre. Los valores viven en `Planta.java`, `Zombie.java` y
+`Juego.ALCANCE_TIRADOR`; la interfaz los lee de `/api/catalogo`.
+
 ## Cómo ejecutar la versión de consola (Fase 1)
 
 ```bash
@@ -222,7 +245,6 @@ el mismo nombre (`mina_normal.gif`, `mina_explota.gif`) y volver a ejecutarlo.
   con el de `mina_normal`).
 - Logo definitivo (el actual dice "PLANT DEFENSE" y trae otras plantas).
 - Fondos de victoria/game over animados (los actuales son imágenes).
-- Ajustar el equilibrio del juego (con 1 Muro y 2 Tiradores ya se ganan las 8 oleadas).
 
 ## Estructuras de datos utilizadas
 
