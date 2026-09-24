@@ -239,15 +239,11 @@ img { -webkit-user-drag: none; }
 #tablero { position: relative; border-radius: 8px; background: #3f7a2a; }
 #tablero.modo-colocar { cursor: crosshair; }
 .capa { position: absolute; inset: 0; }
-.capa-celdas { overflow: hidden; border-radius: 8px; }
+.capa-celdas { overflow: hidden; border-radius: 8px; background-size: 100% 100%; background-position: center; background-repeat: no-repeat; }
 .capa-rango { pointer-events: none; }
 .rango-celda { position: absolute; box-sizing: border-box; border-radius: 8px; border: 2px dashed rgba(255, 210, 63, .9); background: rgba(255, 210, 63, .26); animation: latido 1.2s ease-in-out infinite; }
 .capa-ent, .capa-fx { pointer-events: none; }
-.celda, .celda-camino { position: absolute; }
-.celda { background-size: cover; background-position: center; }
-.celda-camino img { display: block; width: 100%; height: 100%; }
-.marca { position: absolute; pointer-events: none; object-fit: contain; }
-.marca-meta.sacude-casa { animation: casa .55s; }
+.meta-golpe { position: absolute; border-radius: 12px; pointer-events: none; animation: golpeMeta .9s ease-out forwards; }
 
 .ent { position: absolute; left: 0; top: 0; width: 0; height: 0; will-change: transform; }
 .spr { position: absolute; max-width: none; pointer-events: none; user-select: none; }
@@ -331,6 +327,7 @@ img { -webkit-user-drag: none; }
 }
 @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
 @keyframes sacude { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-5px, 3px); } 40% { transform: translate(5px, -3px); } 60% { transform: translate(-3px, -2px); } 80% { transform: translate(3px, 2px); } }
+@keyframes golpeMeta { 0% { box-shadow: 0 0 0 0 rgba(255, 60, 60, .0), inset 0 0 0 0 rgba(255, 60, 60, .0); background: rgba(255, 60, 60, .55); } 100% { box-shadow: 0 0 40px 18px rgba(255, 60, 60, 0), inset 0 0 30px 10px rgba(255, 60, 60, 0); background: rgba(255, 60, 60, 0); } }
 @keyframes casa { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-6deg) scale(1.06); } 75% { transform: rotate(6deg) scale(1.06); } }
 @keyframes sube { 0% { transform: scale(1); color: var(--oro); } 40% { transform: scale(1.3); color: #fff59a; } 100% { transform: scale(1); } }
 @keyframes baja { 0% { transform: scale(1); } 40% { transform: scale(.85); color: var(--rojo); } 100% { transform: scale(1); } }

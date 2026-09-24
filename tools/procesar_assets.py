@@ -25,7 +25,7 @@ Requisitos:  pip install Pillow imageio-ffmpeg
 
 Uso:
     python tools/procesar_assets.py --src "C:/ruta/carpeta_cruda" --dest frontend/assets
-    python tools/procesar_assets.py --src ... --dest ... --solo gifs      (gifs|videos|logo|fondos|musica)
+    python tools/procesar_assets.py --src ... --dest ... --solo gifs      (gifs|videos|logo|mapa|fondos|musica)
 
 Si reemplazas un GIF (por ejemplo la Mina) en la carpeta cruda con el MISMO nombre,
 basta con volver a ejecutar este script.
@@ -111,16 +111,10 @@ GRUPOS = [
 AJUSTAR = [
     dict(src="icono_dinero.gif", out="icono_dinero", carpeta=UI, lado=128, modo="loop", lmin=20, lmax=70),
     dict(src="icono_vida.gif", out="icono_vida", carpeta=UI, lado=128, modo="loop", lmin=20, lmax=70),
-    dict(src="tile_inicio.gif", out="tile_inicio", carpeta=ESCENARIOS, lado=192, modo="loop", lmin=20, lmax=40, marca=MARCA_ESTRELLA),
-    dict(src="tile_meta.gif", out="tile_meta", carpeta=ESCENARIOS, lado=192, modo="loop", lmin=20, lmax=50),
 ]
 
-# GIF que en realidad son imágenes quietas -> PNG
-ESTATICOS = [
-    dict(src="tile_cesped.gif", out="tile_cesped", carpeta=ESCENARIOS, cuadrado=True),
-    dict(src="tile_camino.gif", out="tile_camino", carpeta=ESCENARIOS),
-    dict(src="tile_camino_curva.gif", out="tile_camino_curva", carpeta=ESCENARIOS),
-]
+# GIF que en realidad son imágenes quietas -> PNG (ya no hay ninguno: el tablero usa mapa.jpg)
+ESTATICOS = []
 
 VIDEOS = [
     ("fondo_menu.mp4", "videos/fondo_menu.mp4"),
@@ -130,6 +124,12 @@ VIDEOS = [
 # similitud baja (0.04): quita el negro del fondo pero conserva los contornos oscuros del dibujo.
 LOGOS_ALFA = [
     ("logo_juego_negro.mp4", "videos/logo_juego.webm", 0.04, 0.03, "920:80"),
+]
+# Mapa ilustrado del tablero: una sola imagen con la cuadricula EXACTA de 7x7 celdas del motor.
+# campo = (x, y, lado) del cuadrado jugable dentro de la imagen original (sin el marco de madera).
+# Se comprueba con tools/verificar_mapa.py; si regeneras el mapa, debe seguir siendo un cuadrado de 7x7.
+MAPAS = [
+    dict(src="mapa_decorado.jpg", out=f"{ESCENARIOS}/mapa.jpg", campo=(160, 140, 1820), lado=1400),
 ]
 FONDOS = [
     ("fondo_victoria.jpg", f"{ESCENARIOS}/fondo_victoria.jpg"),
@@ -599,6 +599,63 @@ def procesar_logos(src, dest):
         print(f"  {nombre} -> {rel} (transparente, sin audio)  {os.path.getsize(origen) // 1024} KB -> {os.path.getsize(out) // 1024} KB")
 
 
+def _es_pasto(p):
+    return p[1] > p[0] + 25 and p[1] > p[2] + 40
+
+
+def quitar_costuras_verticales(im, campo, celdas=7):
+    """La IA deja rayas oscuras muy finas en los bordes de celda dentro del pasto liso.
+    Se localiza cada raya (mejor columna cerca del borde nominal) y, solo donde a ambos lados
+    hay pasto, se reemplaza por la mezcla de las columnas vecinas."""
+    x0, y0, lado = campo
+    c = lado // celdas
+    px = im.load()
+
+    def lum(p):
+        return 0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2]
+
+    def oscurecimiento(x):
+        d = []
+        for y in range(y0 + 10, y0 + lado - 10, 3):
+            a, b, cc = px[x - 8, y], px[x, y], px[x + 8, y]
+            if _es_pasto(a) and _es_pasto(b) and _es_pasto(cc):
+                d.append((lum(a) + lum(cc)) / 2 - lum(b))
+        return (sum(d) / len(d)) if len(d) > 30 else 0.0
+
+    arregladas = []
+    for k in range(1, celdas):
+        xn = x0 + k * c
+        mejor = max(range(xn - 6, xn + 7), key=oscurecimiento)
+        if oscurecimiento(mejor) < 3:
+            continue
+        for y in range(y0, y0 + lado):
+            a, cc = px[mejor - 4, y], px[mejor + 4, y]
+            if not (_es_pasto(a) and _es_pasto(cc) and _es_pasto(px[mejor, y])):
+                continue
+            for dx in range(-2, 3):
+                t = (dx + 4) / 8.0
+                px[mejor + dx, y] = tuple(round(a[i] * (1 - t) + cc[i] * t) for i in range(3))
+        arregladas.append(mejor)
+    return arregladas
+
+
+def procesar_mapas(src, dest):
+    for m in MAPAS:
+        origen = os.path.join(src, m["src"])
+        if not os.path.isfile(origen):
+            print(f"  ! falta {m['src']}: se omite")
+            continue
+        im = Image.open(origen).convert("RGB")
+        x, y, lado = m["campo"]
+        costuras = quitar_costuras_verticales(im, m["campo"])
+        campo = im.crop((x, y, x + lado, y + lado)).resize((m["lado"], m["lado"]), Image.LANCZOS)
+        out = os.path.join(dest, m["out"])
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        campo.save(out, quality=88, optimize=True, progressive=True)
+        print(f"  {m['src']} -> {m['out']}  {im.size[0]}x{im.size[1]} -> {m['lado']}x{m['lado']}  "
+              f"(costuras quitadas en x={costuras})  {os.path.getsize(origen) // 1024} KB -> {os.path.getsize(out) // 1024} KB")
+
+
 def procesar_fondos(src, dest):
     for nombre, rel in FONDOS:
         origen = os.path.join(src, nombre)
@@ -652,7 +709,7 @@ def main():
     ap = argparse.ArgumentParser(description="Procesa los assets crudos y los deja listos para el juego.")
     ap.add_argument("--src", required=True, help="Carpeta con los archivos crudos (gif, mp4, jpg, mp3)")
     ap.add_argument("--dest", required=True, help="Carpeta de salida (frontend/assets)")
-    ap.add_argument("--solo", choices=["gifs", "videos", "logo", "fondos", "musica"], help="Procesar solo una parte")
+    ap.add_argument("--solo", choices=["gifs", "videos", "logo", "mapa", "fondos", "musica"], help="Procesar solo una parte")
     args = ap.parse_args()
 
     src, dest = args.src, args.dest
@@ -680,6 +737,9 @@ def main():
         if args.solo != "logo":
             procesar_videos(src, dest)
         procesar_logos(src, dest)
+    if args.solo in (None, "mapa"):
+        print("\n=== Mapa del tablero ===")
+        procesar_mapas(src, dest)
     if args.solo in (None, "fondos"):
         print("\n=== Fondos ===")
         procesar_fondos(src, dest)

@@ -24,8 +24,8 @@
   const PROYECTIL = 'images/effects/proyectil_tirador.gif';
   const IMPACTO = 'images/effects/proyectil_impacto.gif';
 
-  // Curva base del tile: conecta ABAJO y DERECHA. Rotación (horaria) para cada par de bordes.
-  const ROT_CURVA = { ES: 0, SW: 90, NW: 180, EN: 270 };
+  // El fondo del tablero es UNA imagen (images/scenarios/mapa.jpg) con la cuadrícula exacta de 7x7 celdas del motor.
+  const MAPA = 'images/scenarios/mapa.jpg';
 
   let celda = 96;
   let tickMs = 1400;
@@ -35,7 +35,6 @@
   const nodoPorPos = new Map();
   const plantas = new Map();
   const zombis = new Map();
-  let urlCesped = '', urlCamino = '', urlCurva = '';
   let fantasma = null;
   let ultimoEstado = null;
   let temporizadores = new Set();
@@ -183,12 +182,6 @@
     return Math.max(48, Math.floor(Math.min(disponibleAncho / TAM, disponibleAlto / (TAM + 0.42))));
   }
 
-  function dir(a, b) {
-    if (b.columna > a.columna) return 'E';
-    if (b.columna < a.columna) return 'W';
-    return b.fila > a.fila ? 'S' : 'N';
-  }
-
   function construir(estado, elementos, tamDisponible) {
     elTablero = elementos.tablero;
     celda = calcularCelda(tamDisponible.ancho, tamDisponible.alto);
@@ -207,67 +200,11 @@
     elRango = document.createElement('div'); elRango.className = 'capa capa-rango';
     elTablero.append(elCeldas, elRango, elEnt, elFx, elResalte);
 
-    urlCesped = A.url('images/scenarios/tile_cesped.png');
-    urlCamino = A.url('images/scenarios/tile_camino.png');
-    urlCurva = A.url('images/scenarios/tile_camino_curva.png');
+    elCeldas.style.backgroundImage = 'url(' + A.url(MAPA) + ')';
 
     nodos = estado.nodos;
     nodoPorId.clear(); nodoPorPos.clear();
     nodos.forEach((n) => { nodoPorId.set(n.id, n); nodoPorPos.set(n.fila + ',' + n.columna, n); });
-
-    for (let f = 0; f < TAM; f++) {
-      for (let c = 0; c < TAM; c++) {
-        const div = document.createElement('div');
-        div.className = 'celda';
-        div.style.left = c * celda + 'px';
-        div.style.top = f * celda + 'px';
-        div.style.width = celda + 'px';
-        div.style.height = celda + 'px';
-        div.style.backgroundImage = 'url(' + urlCesped + ')';
-        elCeldas.appendChild(div);
-      }
-    }
-
-    nodos.forEach((n, i) => {
-      const dirs = [];
-      if (nodos[i - 1]) dirs.push(dir(n, nodos[i - 1]));
-      if (nodos[i + 1]) dirs.push(dir(n, nodos[i + 1]));
-      const conj = dirs.slice().sort().join('');
-      const horizontal = dirs.every((d) => d === 'E' || d === 'W');
-      const vertical = dirs.every((d) => d === 'N' || d === 'S');
-
-      const img = document.createElement('img');
-      img.className = 'tile';
-      img.draggable = false;
-      if (horizontal || vertical) {
-        img.src = urlCamino;
-        img.style.transform = 'rotate(' + (horizontal ? 0 : 90) + 'deg)';
-      } else {
-        img.src = urlCurva;
-        img.style.transform = 'rotate(' + (ROT_CURVA[conj] || 0) + 'deg)';
-      }
-      const div = document.createElement('div');
-      div.className = 'celda-camino';
-      div.style.left = n.columna * celda + 'px';
-      div.style.top = n.fila * celda + 'px';
-      div.style.width = celda + 'px';
-      div.style.height = celda + 'px';
-      div.appendChild(img);
-      elCeldas.appendChild(div);
-
-      if (n.tipo === 'inicio' || n.tipo === 'meta') {  // portal y casa (animados) sobre el camino
-        const marca = document.createElement('img');
-        marca.className = 'marca marca-' + n.tipo;
-        marca.draggable = false;
-        marca.src = A.url('images/scenarios/tile_' + (n.tipo === 'inicio' ? 'inicio' : 'meta') + '.gif');
-        marca.style.left = n.columna * celda - celda * 0.05 + 'px';
-        marca.style.top = n.fila * celda - celda * 0.12 + 'px';
-        marca.style.width = celda * 1.1 + 'px';
-        marca.style.height = celda * 1.1 + 'px';
-        marca.style.zIndex = n.fila * celda + 1;
-        elEnt.appendChild(marca);
-      }
-    });
   }
 
   function limpiar() {
@@ -616,13 +553,19 @@
       elTablero.classList.add('sacude');
     },
 
-    // Casa de la meta: se sacude cuando un zombi llega
+    // Un zombi llegó a la casa: resplandor rojo sobre la celda de la meta y sacudida del tablero
     golpeMeta() {
-      const marca = elEnt.querySelector('.marca-meta');
-      if (!marca) return;
-      marca.classList.remove('sacude-casa');
-      void marca.offsetWidth;
-      marca.classList.add('sacude-casa');
+      const meta = nodos[nodos.length - 1];
+      if (!meta || !elFx) return;
+      const d = document.createElement('div');
+      d.className = 'meta-golpe';
+      d.style.left = meta.columna * celda + 'px';
+      d.style.top = meta.fila * celda + 'px';
+      d.style.width = celda + 'px';
+      d.style.height = celda + 'px';
+      elFx.appendChild(d);
+      espera(900, () => d.remove());
+      TD.tablero.sacudir();
     },
 
     detener() { temporizadores.forEach(clearTimeout); temporizadores = new Set(); },

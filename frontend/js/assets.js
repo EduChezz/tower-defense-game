@@ -16,9 +16,7 @@
     'images/characters/zombies/basico.png',
     'images/characters/zombies/rapido.png',
     'images/characters/zombies/tanque.png',
-    'images/scenarios/tile_cesped.png',
-    'images/scenarios/tile_camino.png',
-    'images/scenarios/tile_camino_curva.png',
+    'images/scenarios/mapa.jpg',
     'images/scenarios/fondo_victoria.jpg',
     'images/scenarios/fondo_game_over.jpg',
   ];

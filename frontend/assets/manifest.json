@@ -270,36 +270,6 @@
       50
     ]
   },
-  "images/scenarios/tile_inicio.gif": {
-    "ancho": 192,
-    "alto": 192,
-    "cuadros": 31,
-    "duracion_ms": 3100,
-    "en_loop": true,
-    "ancla": [
-      96,
-      96
-    ],
-    "ref": [
-      184,
-      167
-    ]
-  },
-  "images/scenarios/tile_meta.gif": {
-    "ancho": 192,
-    "alto": 192,
-    "cuadros": 20,
-    "duracion_ms": 2000,
-    "en_loop": true,
-    "ancla": [
-      96,
-      96
-    ],
-    "ref": [
-      184,
-      148
-    ]
-  },
   "images/ui/icono_dinero.gif": {
     "ancho": 128,
     "alto": 128,

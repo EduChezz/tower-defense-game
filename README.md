@@ -88,7 +88,7 @@ tower-defense-game/
 │   ├── css/styles.css
 │   ├── js/
 │   │   ├── main.js        # Pantallas, HUD, controles, bucle de ticks, demo
-│   │   ├── tablero.js     # Mapa 7x7, sprites, animaciones y proyectiles
+│   │   ├── tablero.js     # Tablero 7x7 sobre el mapa ilustrado, sprites, animaciones y proyectiles
 │   │   ├── audio.js       # Efectos y música
 │   │   ├── assets.js      # Precarga de imágenes/animaciones
 │   │   └── api.js         # Llamadas al backend
@@ -99,7 +99,7 @@ tower-defense-game/
 │       │   │   ├── plants/    # Muro, Tirador, Mina (reposo, disparo/explosión, destruido)
 │       │   │   └── zombies/   # Básico, Tanque, Rápido (caminar/correr, comer, muerte)
 │       │   ├── effects/       # Proyectil del Tirador e impacto
-│       │   ├── scenarios/     # Tiles del camino, inicio/meta, fondos de victoria y game over
+│       │   ├── scenarios/     # Mapa ilustrado del tablero, fondos de victoria y game over
 │       │   └── ui/            # Iconos del HUD (dinero, vida)
 │       ├── videos/            # Fondo del menú y logo (sin audio)
 │       └── sounds/
@@ -110,6 +110,7 @@ tower-defense-game/
 │
 ├── tools/                     # Scripts para preparar los assets (ver más abajo)
 │   ├── procesar_assets.py
+│   ├── verificar_mapa.py
 │   └── spritesheet_to_gif.py
 │
 ├── docs/                  # Documentación e informes del proyecto
@@ -183,13 +184,25 @@ estático por personaje para las cartas y el Libro: `plants/muro.png`,
 | `images/effects/proyectil_tirador.gif` | Semilla que dispara el Tirador (loop) |
 | `images/effects/proyectil_impacto.gif` | Impacto de la semilla (1 vez) |
 | `images/ui/icono_dinero.gif`, `icono_vida.gif` | Iconos del HUD (loop) |
-| `images/scenarios/tile_cesped.png` | Celda sin camino |
-| `images/scenarios/tile_camino.png` | Camino recto (rotarlo 90° por CSS para el vertical) |
-| `images/scenarios/tile_camino_curva.png` | Curva; rotarla 90°/180°/270° para las 4 esquinas |
-| `images/scenarios/tile_inicio.gif`, `tile_meta.gif` | Celdas de inicio y meta (loop) |
+| `images/scenarios/mapa.jpg` | **Mapa del tablero**: una sola imagen de 1400×1400 con la cuadrícula exacta de 7×7 celdas (200 px c/u), el camino serpenteante, la piedra START y la casa ya dibujados |
 | `images/scenarios/fondo_victoria.jpg`, `fondo_game_over.jpg` | Fondos de fin de partida (provisionales) |
 | `videos/fondo_menu.mp4` | Fondo animado del menú (sin audio, en loop) |
 | `videos/logo_juego.webm` | Logo animado con **transparencia** (WebM VP9 con alfa, sin audio); se genera desde un MP4 de fondo negro con `procesar_assets.py --solo logo` |
+
+**Sobre el mapa** (`mapa.jpg`): se genera con `procesar_assets.py --solo mapa` desde `mapa_decorado.jpg` (recorta el
+campo jugable sin el marco de madera y quita las rayas finas que la IA deja en los bordes de celda). La tierra ocupa
+~80 % de cada celda del camino y las plantas/zombis pisan a 0.8 de la altura de la celda. La piedra START y la casa
+van dibujadas (estáticas); cuando un zombi llega a la meta, la celda de la casa brilla en rojo y el tablero se sacude.
+Los antiguos `tile_*` ya no se cargan; `tile_camino_curva.png` y `tile_inicio.gif` quedan en el repo sin usarse.
+
+**Si cambias el mapa**, debe seguir siendo un cuadrado con 7×7 celdas y el mismo camino en serpiente
+(fila 0 hacia la derecha, baja por la columna 6, fila 2 hacia la izquierda, baja por la columna 0, fila 4 hacia la
+derecha, baja por la columna 6 hasta la casa en la esquina inferior derecha), con la tierra centrada en cada celda.
+Compruébalo antes de usarlo:
+
+```bash
+python tools/verificar_mapa.py --imagen mapa_decorado.jpg --campo 160,140,1820   # x,y,lado del campo jugable
+```
 
 ### Sonidos (`sounds/`)
 
@@ -228,7 +241,7 @@ Los archivos "crudos" (tal como salen de las IA) **no se suben al repo**; se pro
 ```bash
 pip install Pillow imageio-ffmpeg
 python tools/procesar_assets.py --src "C:/ruta/carpeta_cruda" --dest frontend/assets
-# o solo una parte:  --solo gifs | videos | fondos | musica
+# o solo una parte:  --solo gifs | videos | logo | mapa | fondos | musica
 ```
 
 El script quita marcas de agua de la IA y la sombra morada, recorta y unifica el
@@ -237,7 +250,7 @@ explosiones, quita el audio de los videos, reduce los fondos, arma los loops de
 música sin salto y regenera `manifest.json`. Para **reemplazar una animación**
 (por ejemplo una Mina mejorada) basta con poner el GIF nuevo en la carpeta cruda con
 el mismo nombre (`mina_normal.gif`, `mina_explota.gif`) y volver a ejecutarlo.
-`tools/spritesheet_to_gif.py` sirve para partir hojas de sprites en cuadros y GIF.
+`tools/spritesheet_to_gif.py` sirve para partir hojas de sprites en cuadros y GIF y `tools/verificar_mapa.py` comprueba que un mapa calce con la cuadrícula del motor.
 
 ### Pendiente
 
