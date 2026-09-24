@@ -64,8 +64,8 @@ public class Menu {
         System.out.println("│ 1. Tienes 3 vidas iniciales                                 │");
         System.out.println("│ 2. Comienzas con 800 monedas                                │");
         System.out.println("│ 3. Coloca defensas para detener zombies:                    │");
-        System.out.println("│    • Muro: 150 monedas (HP:400, bloquea)                    │");
-        System.out.println("│    • Tirador: 200 monedas (HP:100, ataca a distancia)       │");
+        System.out.println("│    • Muro: 150 monedas (HP:250, bloquea)                    │");
+        System.out.println("│    • Tirador: 200 monedas (HP:100, alcance 4 nodos)         │");
         System.out.println("│    • Mina: 250 monedas (HP:1, explota al contacto)          │");
         System.out.println("│ 4. Elimina todos los zombies antes de perder las 3 vidas    │");
         System.out.println("│ 5. Hay 8 oleadas de dificultad progresiva                   │");
@@ -92,17 +92,17 @@ public class Menu {
         System.out.println("┌─ PLANTAS (DEFENSAS) ────────────────────────────────────────┐");
         System.out.println("│ Nombre   │ HP  │ Tipo   │ Costo │ Característica             │");
         System.out.println("├──────────┼─────┼────────┼───────┼──────────────────────────┤");
-        System.out.println("│ MURO     │ 400 │ BLOQUEO│  150  │ Bloquea el camino        │");
-        System.out.println("│ TIRADOR  │ 100 │ ATAQUE │  200  │ Ataca a distancia (20)   │");
+        System.out.println("│ MURO     │ 250 │ BLOQUEO│  150  │ Bloquea el camino        │");
+        System.out.println("│ TIRADOR  │ 100 │ ATAQUE │  200  │ Ataca a 4 nodos (10)     │");
         System.out.println("│ MINA     │   1 │ EXPLOSIÓN 250  │ Explota: 999 daño        │");
         System.out.println("└──────────┴─────┴────────┴───────┴──────────────────────────┘\n");
         
         System.out.println("┌─ ZOMBIES (ENEMIGOS) ────────────────────────────────────────┐");
         System.out.println("│ Nombre  │ HP  │ Daño │ Velocidad │ Recompensa │ Tipo      │");
         System.out.println("├─────────┼─────┼──────┼───────────┼────────────┼──────────┤");
-        System.out.println("│ BASICO  │ 100 │  10  │     1     │     50     │ Balanced │");
-        System.out.println("│ TANQUE  │ 300 │   5  │     2     │    100     │ Lento    │");
-        System.out.println("│ RAPIDO  │  50 │  20  │     1     │     75     │ Rápido   │");
+        System.out.println("│ BASICO  │ 100 │  20  │     1     │     50     │ Balanced │");
+        System.out.println("│ TANQUE  │ 300 │  10  │     2     │    100     │ Lento    │");
+        System.out.println("│ RAPIDO  │  50 │  40  │     1     │     75     │ Rápido   │");
         System.out.println("└─────────┴─────┴──────┴───────────┴────────────┴──────────┘\n");
         
         System.out.println("Dinero inicial: 800 monedas");

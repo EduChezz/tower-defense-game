@@ -14,8 +14,8 @@ public class Planta extends EntidadJuego {
     public Nodo nodo;   // Nodo donde está colocada (null si no está en el mapa)
 
     // CATÁLOGO ESTÁTICO DE PLANTAS
-    public static Planta MURO = new Planta("Muro", 400, 0, 150, TipoPlanta.MURO);
-    public static Planta TIRADOR = new Planta("Tirador", 100, 20, 200, TipoPlanta.TIRADOR);
+    public static Planta MURO = new Planta("Muro", 250, 0, 150, TipoPlanta.MURO);
+    public static Planta TIRADOR = new Planta("Tirador", 100, 10, 200, TipoPlanta.TIRADOR);
     public static Planta MINA = new Planta("Mina", 1, 999, 250, TipoPlanta.MINA);
 
     public Planta(String nombre, int hp, int danoBase, int costoEnergia, TipoPlanta tipo) {

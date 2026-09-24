@@ -16,9 +16,9 @@ public class Zombie extends EntidadJuego {
     public int recompensa;         // Dinero al ser derrotado
 
     // CATÁLOGO ESTÁTICO DE ZOMBIES
-    public static Zombie BASICO = new Zombie("Basico", 100, 10, 1, TipoZombie.BASICO, 50);
-    public static Zombie TANQUE = new Zombie("Tanque", 300, 5, 2, TipoZombie.TANQUE, 100);
-    public static Zombie RAPIDO = new Zombie("Rapido", 50, 20, 1, TipoZombie.RAPIDO, 75);
+    public static Zombie BASICO = new Zombie("Basico", 100, 20, 1, TipoZombie.BASICO, 50);
+    public static Zombie TANQUE = new Zombie("Tanque", 300, 10, 2, TipoZombie.TANQUE, 100);
+    public static Zombie RAPIDO = new Zombie("Rapido", 50, 40, 1, TipoZombie.RAPIDO, 75);
 
     public Zombie(String nombre, int hp, int danoBase, int velocidad, TipoZombie tipo, int recompensa) {
         super(nombre, hp, danoBase);

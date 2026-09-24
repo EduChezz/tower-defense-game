@@ -45,14 +45,18 @@ public class Juego {
     private boolean demoGanar;
     private int pausaMs = 300;
 
+    // El Tirador solo alcanza a los zombies de los ALCANCE_TIRADOR nodos anteriores al suyo en el camino
+    public static final int ALCANCE_TIRADOR = 4;
+
     // Cantidad de zombies por oleada (DEMO: 5 oleadas, COMPLETO: 8 oleadas)
     private static final int[] OLEADAS_DEMO = {3, 3, 4, 4, 5};
     private static final int[] OLEADAS_COMPLETO = {3, 3, 4, 4, 5, 6, 7, 8};
     private int[] cantidades;
 
     // Estrategia de la demo ganadora: {tipo (1 muro, 2 tirador, 3 mina), id de nodo}
+    // Los muros (nodos 4 y 5) detienen a los zombies dentro del alcance de los Tiradores (nodos 6 a 9)
     private static final int[][] ESTRATEGIA_DEMO = {
-        {1, 4}, {2, 6}, {2, 7}, {3, 2}, {2, 8}, {1, 3}, {2, 9}
+        {2, 6}, {1, 5}, {2, 7}, {1, 4}, {3, 3}, {2, 8}, {2, 9}
     };
 
     public Juego(boolean isDemo, Scanner scanner) {
@@ -119,9 +123,10 @@ public class Juego {
         while (actual != null) {
             if (actual.planta != null && actual.planta.estaVivo()) {
                 if (actual.planta.tipo == Planta.TipoPlanta.TIRADOR) {
-                    // Los zombies vienen desde el nodo 0: dispara al más cercano que se acerca
+                    // Los zombies vienen desde el nodo 0: dispara al más cercano que se acerca,
+                    // dentro de su alcance (los ALCANCE_TIRADOR nodos anteriores al suyo)
                     Nodo nodoObjetivo = null;
-                    Nodo buscador = this.mapa.getCabeza();
+                    Nodo buscador = this.mapa.obtenerNodo(Math.max(0, actual.idPosicion - ALCANCE_TIRADOR));
                     while (buscador != null && buscador != actual) {
                         if (buscador.zombie != null && buscador.zombie.estaVivo()) {
                             nodoObjetivo = buscador;
@@ -461,8 +466,8 @@ public class Juego {
 
     private void colocarDefensa() {
         System.out.println("\n[COLOCAR DEFENSA]");
-        System.out.println("1. Muro (Costo: 150, HP: 400)");
-        System.out.println("2. Tirador (Costo: 200, HP: 100, Daño: 20)");
+        System.out.println("1. Muro (Costo: 150, HP: 250)");
+        System.out.println("2. Tirador (Costo: 200, HP: 100, Daño: 10, Alcance: " + ALCANCE_TIRADOR + " nodos)");
         System.out.println("3. Mina (Costo: 250, HP: 1, Daño: 999)");
         System.out.print("Selecciona tipo: ");
 
@@ -705,6 +710,7 @@ public class Juego {
         }
         c.put("plantas", plantas);
         c.put("zombies", zombies);
+        c.put("alcanceTirador", ALCANCE_TIRADOR);
         c.put("dineroInicial", 800);
         c.put("vidasIniciales", 3);
         c.put("oleadas", OLEADAS_COMPLETO.length);
